@@ -85,14 +85,6 @@ export default function Home() {
                   <div className="relative bg-black/20 rounded-xl overflow-hidden border border-white/10 shadow-2xl backdrop-blur-[1px] transition-all duration-500 group-hover:scale-[1.02] group-hover:border-white/20">
                     {/* Featured NFT Image */}
                     <div className="aspect-[4/3] relative overflow-hidden">
-                      <Image
-                        src="https://images.unsplash.com/photo-1614313913007-2b4ae8ce32d6?w=800&auto=format&fit=crop&q=80"
-                        alt="Featured NFT Story - The Quantum Dreamer"
-                        width={800}
-                        height={600}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        priority
-                      />
                       {/* Overlay gradient */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -102,21 +94,6 @@ export default function Home() {
                     </div>
 
                     {/* NFT Info with enhanced styling */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                        <span className="text-sm font-medium text-primary">
-                          Featured NFT #001
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-white via-primary-foreground to-blue-200 bg-clip-text text-transparent">
-                        The Quantum Dreamer
-                      </h3>
-                      <p className="text-sm text-white/80">
-                        A mind-bending journey through parallel universes where
-                        dreams and reality intertwine.
-                      </p>
-                    </div>
 
                     {/* Glow effects */}
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

@@ -29,24 +29,25 @@ export default function Home() {
       {/* Wrap all content in a relative container for proper z-indexing */}
       <div className="relative z-10">
         {/* Hero Section */}
-        <section className="py-20">
+        <section className="py-20 min-h-[80vh] flex items-center">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col lg:flex-row items-center gap-12">
-              <div className="lg:w-1/2 space-y-6">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 bg-clip-text text-transparent [text-shadow:_0_1px_30px_rgb(255_255_255_/_20%)]">
+            <div className="flex flex-col items-center text-center">
+              <div className="max-w-4xl mx-auto space-y-6">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 bg-clip-text text-transparent [text-shadow:_0_1px_30px_rgb(255_255_255_/_20%)] min-w-0">
                   Craft Legendary Tales with AI Magic
                 </h1>
 
-                <p className="text-lg md:text-xl text-white/90">
-                  Monad Mythics transforms your imagination into captivating stories using
-                  advanced AI. Create, own, and trade your narratives as unique NFTs.
+                <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+                  Monad Mythics transforms your imagination into captivating
+                  stories using advanced AI. Create, own, and trade your
+                  narratives as unique NFTs.
                 </p>
 
-                <div className="flex flex-wrap gap-4 pt-4">
+                <div className="flex flex-wrap gap-4 pt-4 justify-center">
                   <Link href="/create/ai-story">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/20"
+                      className="bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/20 min-w-[160px]"
                     >
                       <PenSquare className="mr-2 h-5 w-5" />
                       Create Story
@@ -58,7 +59,7 @@ export default function Home() {
                       onClick={connectWallet}
                       variant="outline"
                       size="lg"
-                      className="border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20"
+                      className="border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20 min-w-[160px]"
                     >
                       <Wallet className="mr-2 h-5 w-5" />
                       Connect Wallet
@@ -67,58 +68,13 @@ export default function Home() {
                     <Link href="/nft-gallery">
                       <Button
                         size="lg"
-                        className="bg-gradient-to-r from-pink-600 to-purple-500 shadow-lg shadow-pink-500/20"
+                        className="bg-gradient-to-r from-pink-600 to-purple-500 shadow-lg shadow-pink-500/20 min-w-[160px]"
                       >
                         <Sparkles className="mr-2 h-5 w-5" />
                         Browse NFTs
                       </Button>
                     </Link>
                   )}
-                </div>
-              </div>
-
-              <div className="lg:w-1/2">
-                <div className="relative group">
-                  {/* Premium NFT Card */}
-                  <div className="relative bg-black/20 rounded-xl overflow-hidden border border-white/10 shadow-2xl backdrop-blur-[1px] transition-all duration-500 group-hover:scale-[1.02] group-hover:border-white/20">
-                    {/* Featured NFT Image */}
-                    <div className="aspect-[4/3] relative overflow-hidden">
-                      <Image
-                        src="https://images.unsplash.com/photo-1614313913007-2b4ae8ce32d6?w=800&auto=format&fit=crop&q=80"
-                        alt="Featured NFT Story - The Quantum Dreamer"
-                        width={800}
-                        height={600}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        priority
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                      {/* Add floating particles effect */}
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(76,29,149,0.1)_0%,rgba(0,0,0,0)_100%)] mix-blend-screen" />
-                      <div className="absolute inset-0 opacity-50 mix-blend-overlay bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjc1IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]" />
-                    </div>
-
-                    {/* NFT Info with enhanced styling */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                        <span className="text-sm font-medium text-primary">
-                          Featured NFT #001
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-white via-primary-foreground to-blue-200 bg-clip-text text-transparent">
-                        The Quantum Dreamer
-                      </h3>
-                      <p className="text-sm text-white/80">
-                        A mind-bending journey through parallel universes where
-                        dreams and reality intertwine.
-                      </p>
-                    </div>
-
-                    {/* Glow effects */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  </div>
                 </div>
               </div>
             </div>
@@ -148,14 +104,14 @@ export default function Home() {
                           [
                             'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=600&fit=crop&q=80',
                             'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&q=80',
-                            'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop&q=80'
+                            'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop&q=80',
                           ][i] as string
                         }
                         alt={
                           [
                             'Digital Dreamer NFT',
                             'Echoes of Tomorrow NFT',
-                            'Chronicles of the Forgotten NFT'
+                            'Chronicles of the Forgotten NFT',
                           ][i] as string
                         }
                         fill
@@ -301,8 +257,8 @@ export default function Home() {
               </h2>
 
               <p className="text-lg text-muted-foreground mb-8">
-                Join the Monad Mythics community today and transform your ideas into
-                unique stories powered by cutting-edge AI technology
+                Join the Monad Mythics community today and transform your ideas
+                into unique stories powered by cutting-edge AI technology
               </p>
 
               <div className="flex flex-wrap gap-4 justify-center">
