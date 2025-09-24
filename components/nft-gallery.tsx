@@ -285,22 +285,33 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
           if (cacheRaw) {
             const cache = JSON.parse(cacheRaw);
             console.log(`Found localStorage cache for token ${tokenId}:`, cache);
+            console.log(`Cache author: ${cache.author}, Cache genre: ${cache.genre}`);
             
-            // Always use cache if IPFS failed (null CIDs)
-            if (!metadata.name || storyContent === 'Story content not available') {
-              usedLocalCache = true;
-              console.log(`Using localStorage fallback for token ${tokenId}`);
-              
-              // Merge cached metadata with what we have
-              metadata = { ...metadata, ...(cache.metadata || {}) };
-              if (!metadata.image && cache.metadata?.image) {
-                metadata.image = cache.metadata.image;
-              }
-              
-              // Use cached story content if we don't have it
-              if (storyContent === 'Story content not available' && cache.storyContent) {
-                storyContent = cache.storyContent;
-              }
+            // Always use cache if IPFS failed (null CIDs) - be more aggressive
+            usedLocalCache = true;
+            console.log(`Using localStorage fallback for token ${tokenId}`);
+            
+            // Merge cached metadata with what we have
+            metadata = { ...metadata, ...(cache.metadata || {}) };
+            if (!metadata.image && cache.metadata?.image) {
+              metadata.image = cache.metadata.image;
+            }
+            
+            // Use cached story content if we don't have it
+            if (storyContent === 'Story content not available' && cache.storyContent) {
+              storyContent = cache.storyContent;
+            }
+            
+            // Also merge direct cache properties for author, genre, etc.
+            if (cache.author) metadata.author = cache.author;
+            if (cache.genre) metadata.genre = cache.genre;
+            
+            // Try to extract author/genre from cache metadata attributes
+            if (cache.metadata?.attributes) {
+              const authorAttr = cache.metadata.attributes.find((attr: any) => attr.trait_type === 'Author');
+              const genreAttr = cache.metadata.attributes.find((attr: any) => attr.trait_type === 'Genre');
+              if (authorAttr?.value) metadata.author = authorAttr.value;
+              if (genreAttr?.value) metadata.genre = genreAttr.value;
             }
           } else {
             console.log(`No localStorage cache found for token ${tokenId}`);
@@ -312,26 +323,47 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
 
       // Parse images from metadata or localStorage
       let imagesArr: { url: string; chapter?: string; description?: string }[] = [];
-      try {
-        if ((typeof window !== 'undefined')) {
-          const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
-          if (cacheRaw) {
-            const cache = JSON.parse(cacheRaw);
-            if (cache.images && Array.isArray(cache.images)) {
-              imagesArr = cache.images.map((img: any) => ({
-                url: img.url || img,
-                chapter: img.chapter,
-                description: img.description
-              }));
+      
+      // First try to get images from metadata
+      if (metadata.images && Array.isArray(metadata.images)) {
+        imagesArr = metadata.images.map((img: any) => ({
+          url: img.url || img,
+          chapter: img.chapter,
+          description: img.description
+        }));
+        console.log(`Found ${imagesArr.length} images in metadata for token ${tokenId}`);
+      }
+      
+      // If no images in metadata, try localStorage
+      if (imagesArr.length === 0) {
+        try {
+          if ((typeof window !== 'undefined')) {
+            const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
+            if (cacheRaw) {
+              const cache = JSON.parse(cacheRaw);
+              if (cache.images && Array.isArray(cache.images)) {
+                imagesArr = cache.images.map((img: any) => ({
+                  url: img.url || img,
+                  chapter: img.chapter,
+                  description: img.description
+                }));
+                console.log(`Found ${imagesArr.length} images in localStorage for token ${tokenId}`);
+              }
             }
           }
+        } catch (e) {
+          console.warn(`Error parsing images from localStorage for token ${tokenId}:`, e);
         }
-      } catch (e) {
-        // ignore cache errors
       }
 
       // Determine content type
       const contentType = Number(storyDetails.contentType);
+
+      // Final author resolution
+      const finalAuthor = metadata.attributes?.find((attr: any) => attr.trait_type === 'Author')?.value || metadata.author || 'Unknown';
+      const finalGenre = metadata.attributes?.find((attr: any) => attr.trait_type === 'Genre')?.value || metadata.genre || 'Unknown';
+      
+      console.log(`Final author for token ${tokenId}: ${finalAuthor}, Final genre: ${finalGenre}`);
 
       return {
         tokenId: tokenId.toString(),
@@ -340,8 +372,8 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
         imageUrl: metadata.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
         storyContent,
         owner,
-        genre: metadata.attributes?.find((attr: any) => attr.trait_type === 'Genre')?.value || 'Unknown',
-        author: metadata.attributes?.find((attr: any) => attr.trait_type === 'Author')?.value || 'Unknown',
+        genre: finalGenre,
+        author: finalAuthor,
         aiModel: 'Not specified', // Removed AI model as requested
         createdAt: metadata.attributes?.find((attr: any) => attr.trait_type === 'Created At')?.value || 'Unknown',
         imageCount: Number(storyDetails.imageCount),
@@ -365,28 +397,51 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
       const existingIds = new Set((loadMore ? nfts : []).map((n) => Number(n.tokenId)));
       const validNFTs: StoryNFT[] = loadMore ? [...nfts] : [];
 
-      // 0) Since API is having issues, let's directly try the known token IDs 0,1,2,3,4
+      // 0) Auto-detect NFTs by scanning from 0 upwards, display immediately as found
       if (!loadMore) {
-        console.log('Trying known token IDs: 0, 1, 2, 3, 4');
-        const knownIds = [4, 3, 2, 1, 0]; // reverse order to show newest first
-        for (const id of knownIds) {
-          if (existingIds.has(id)) continue;
+        console.log('Auto-detecting NFTs by scanning from token 0 upwards...');
+        
+        // Start from 0 and scan upwards to find all existing tokens
+        let tokenId = 0;
+        let consecutiveFailures = 0;
+        const maxConsecutiveFailures = 3; // Stop after 3 consecutive failures
+        const maxTokensToScan = 50; // Safety limit
+        
+        while (tokenId < maxTokensToScan && consecutiveFailures < maxConsecutiveFailures) {
+          if (existingIds.has(tokenId)) {
+            tokenId++;
+            continue;
+          }
+          
           try {
-            console.log(`Fetching NFT data for known token ${id}`);
-            const seeded = await fetchNFTData(id);
-            if (seeded) {
-              console.log(`Successfully loaded NFT ${id}:`, seeded.title);
-              validNFTs.push(seeded);
-              existingIds.add(id);
-              // slight delay to avoid rate limiting
-              await new Promise((r) => setTimeout(r, 300));
+            console.log(`Auto-scanning token ${tokenId}...`);
+            const nftData = await fetchNFTData(tokenId);
+            if (nftData) {
+              console.log(`✅ Found NFT ${tokenId}:`, nftData.title);
+              validNFTs.push(nftData);
+              existingIds.add(tokenId);
+              consecutiveFailures = 0; // Reset failure count on success
+              
+              // Sort by tokenId descending to show newest first and update immediately
+              validNFTs.sort((a, b) => Number(b.tokenId) - Number(a.tokenId));
+              setNfts([...validNFTs]); // Update UI immediately with found NFTs
+              setIsLoading(false); // Stop loading spinner after first NFT is found
+              
+              // Small delay to avoid rate limiting
+              await new Promise((r) => setTimeout(r, 200));
             } else {
-              console.log(`No data returned for token ${id}`);
+              console.log(`❌ Token ${tokenId} does not exist`);
+              consecutiveFailures++;
             }
           } catch (e) {
-            console.warn(`Failed to fetch token ${id}:`, e);
+            console.warn(`Failed to fetch token ${tokenId}:`, e);
+            consecutiveFailures++;
           }
+          
+          tokenId++;
         }
+        
+        console.log(`Auto-scan complete. Found ${validNFTs.length} NFTs. Last scanned token: ${tokenId - 1}`);
       }
 
       // If we have a highlight token, scan a window around it to pick up nearby recent mints
@@ -404,9 +459,9 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
       const hardCallCap = 200; // do not exceed this many owner/token calls per fetch
       let calls = 0;
 
-      // Skip range scanning if we already found NFTs from known IDs
-      if (validNFTs.length >= 5) {
-        console.log(`Already found ${validNFTs.length} NFTs, skipping range scan`);
+      // Skip additional range scanning if we already found NFTs from auto-scan
+      if (validNFTs.length > 0 && !loadMore) {
+        console.log(`Auto-scan found ${validNFTs.length} NFTs, skipping additional range scan`);
       } else {
         console.log(`Starting range scan from ${startToken} to ${endToken}, already have ${validNFTs.length} NFTs`);
         for (let i = startToken; i < endToken && calls < hardCallCap; i++) {
@@ -422,6 +477,10 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
               validNFTs.push(nft);
               existingIds.add(i);
               consecutiveMisses = 0; // reset on success
+              
+              // Update UI immediately for range scan too
+              setNfts([...validNFTs]);
+              setIsLoading(false); // Stop loading spinner after first NFT is found
             } else {
               consecutiveMisses++;
               console.log(`Token ${i} not found, consecutive misses: ${consecutiveMisses}`);
@@ -448,7 +507,10 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
         }
       }
       
-      setNfts(validNFTs);
+      // Only set NFTs at the end if we're doing loadMore (since auto-scan updates immediately)
+      if (loadMore) {
+        setNfts(validNFTs);
+      }
       setMaxTokensChecked(endToken);
     } catch (error) {
       console.error('Failed to fetch NFTs:', error);
@@ -646,19 +708,32 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
               </div>
               
               <div className="space-y-4">
-                <img
-                  src={selectedNFT.imageUrl}
-                  alt={selectedNFT.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                {selectedNFT.images && selectedNFT.images.length > 0 && (
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedNFT.images.map((img, idx) => (
-                      <div key={idx} className="aspect-video rounded overflow-hidden">
-                        <img src={img.url} alt={img.description || `Image ${idx+1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
+                {/* Display all images including the main one */}
+                {selectedNFT.images && selectedNFT.images.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium mb-2">Generated Images ({selectedNFT.images.length})</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedNFT.images.map((img, idx) => (
+                        <div key={idx} className="aspect-video rounded overflow-hidden">
+                          <img 
+                            src={img.url} 
+                            alt={img.description || `Image ${idx+1}`} 
+                            className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer" 
+                            onClick={() => window.open(img.url, '_blank')}
+                          />
+                          {img.description && (
+                            <p className="text-xs text-muted-foreground mt-1 px-2">{img.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ) : (
+                  <img
+                    src={selectedNFT.imageUrl}
+                    alt={selectedNFT.title}
+                    className="w-full h-64 object-cover rounded-lg"
+                  />
                 )}
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
