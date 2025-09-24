@@ -13,8 +13,11 @@ import {
   Download,
   Eye,
   User,
+  Upload,
+  File,
+  X,
 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +122,14 @@ export default function AIStoryGenerator({
   const [activeTab, setActiveTab] = useState('input');
   const [includeImages, setIncludeImages] = useState(true);
 
+  // File upload states
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileContent, setFileContent] = useState<string>('');
+  const [fileAnalysis, setFileAnalysis] = useState<any>(null);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [creationMode, setCreationMode] = useState<'manual' | 'upload'>('manual');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
   const { account, connected, connectWallet, mintNFTOnMonad } = useWeb3();
 
@@ -126,6 +137,120 @@ export default function AIStoryGenerator({
     setSelectedGenres((prev) =>
       prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
+  };
+
+  // File upload handlers
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = [
+      'text/plain',
+      'text/markdown',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Unsupported File Type',
+        description: 'Please upload a text file, markdown, PDF, or Word document.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsProcessingFile(true);
+    setUploadedFile(file);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/process-file', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setFileContent(result.data.content);
+        setFileAnalysis(result.data.analysis);
+        
+        // Auto-populate fields based on file analysis
+        if (result.data.analysis.characters.length > 0) {
+          setMainCharacters(result.data.analysis.characters.join(', '));
+        }
+        
+        if (result.data.analysis.themes.length > 0) {
+          setThemes(result.data.analysis.themes.join(', '));
+        }
+        
+        if (result.data.analysis.settings.length > 0) {
+          setSetting(result.data.analysis.settings[0]);
+        }
+
+        // Auto-populate prompt with file content
+        if (result.data.content && result.data.content !== 'PDF_PROCESSING_REQUIRED' && result.data.content !== 'DOCUMENT_PROCESSING_REQUIRED') {
+          const truncatedContent = result.data.content.length > 1000 ? result.data.content.substring(0, 1000) + '...' : result.data.content;
+          setPrompt(`Based on this content: "${truncatedContent}"\n\nGenerate a story that continues or reimagines this narrative:`);
+        } else {
+          // For PDF/Word files that need manual extraction
+          if (result.data.content === 'PDF_PROCESSING_REQUIRED') {
+            setPrompt('Please paste the content from your PDF file above, then describe the story you want to generate based on that content:');
+          } else if (result.data.content === 'DOCUMENT_PROCESSING_REQUIRED') {
+            setPrompt('Please paste the content from your Word document above, then describe the story you want to generate based on that content:');
+          }
+        }
+
+        toast({
+          title: 'File Processed Successfully',
+          description: `${file.name} analyzed. Found ${result.data.analysis.themes.length} themes, ${result.data.analysis.characters.length} characters.`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error('Error processing file:', error);
+      toast({
+        title: 'File Processing Error',
+        description: error.message || 'Failed to process the uploaded file. Please try again.',
+        variant: 'destructive',
+      });
+      setUploadedFile(null);
+    } finally {
+      setIsProcessingFile(false);
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    setFileContent('');
+    setFileAnalysis(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Generate images using Google Nano Banana API
@@ -214,13 +339,49 @@ export default function AIStoryGenerator({
   };
 
   const generateStory = async () => {
-    if (!prompt.trim()) {
-      toast({
-        title: 'Missing Prompt',
-        description: 'Please enter a story prompt to generate content.',
-        variant: 'destructive',
-      });
-      return;
+    // Validation logic for different creation modes
+    if (creationMode === 'manual') {
+      if (!prompt.trim()) {
+        toast({
+          title: 'Missing Prompt',
+          description: 'Please enter a story prompt to generate content.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (creationMode === 'upload') {
+      if (!title.trim()) {
+        toast({
+          title: 'Missing Title',
+          description: 'Please enter a title for your story.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (!author.trim()) {
+        toast({
+          title: 'Missing Author',
+          description: 'Please enter an author name.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (!uploadedFile || !fileContent) {
+        toast({
+          title: 'Missing File',
+          description: 'Please upload a source file to generate content from.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (selectedGenres.length === 0) {
+        toast({
+          title: 'Missing Genres',
+          description: 'Please select at least one genre for your story.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -228,11 +389,17 @@ export default function AIStoryGenerator({
       // Generate story content
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      // Incorporate file content if available
+      let baseContent = prompt;
+      if (fileContent && uploadedFile) {
+        baseContent = `Based on the uploaded file "${uploadedFile.name}":\n\n${fileContent.substring(0, 2000)}${fileContent.length > 2000 ? '...' : ''}\n\n${prompt}`;
+      }
+
       const mockStory = `# ${title || 'Generated Story'}
 
 ## Chapter 1: The Beginning
 
-${prompt} 
+${baseContent} 
 
 In the ${setting || 'mysterious realm'}, our protagonist ${mainCharacters || 'a brave hero'} embarked on an extraordinary journey. The themes of ${themes || 'courage and discovery'} wove through every aspect of this ${selectedGenres.join(', ') || 'adventure'} tale.
 
@@ -419,6 +586,13 @@ This generated story demonstrates the power of AI-assisted creative writing, com
     setGeneratedContent('');
     setGeneratedImages([]);
     setMintedNftUrl('');
+    setUploadedFile(null);
+    setFileContent('');
+    setFileAnalysis(null);
+    setCreationMode('manual');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setActiveTab('input');
   };
 
@@ -457,105 +631,316 @@ This generated story demonstrates the power of AI-assisted creative writing, com
             </TabsList>
 
             <TabsContent value="input" className="space-y-6">
-              <div className="space-y-4">
-                <div className="relative">
-                  <label className="text-sm font-medium mb-2 block flex items-center">
-                    <Lightbulb className="h-4 w-4 mr-2 text-orange-500" />
-                    Spark of Inspiration *
-                  </label>
-                  <Textarea
-                    placeholder="Whisper your tale's essence... What legendary story burns within your imagination?"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="min-h-[120px] bg-slate-900/80 border-orange-500/30 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
-                  />
-                  <div className="absolute top-2 right-2 text-xs text-orange-400 opacity-60">
-                    ✨ Let creativity flow
-                  </div>
-                </div>
+              {/* Creation Mode Toggle */}
+              <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 p-6 rounded-xl border border-indigo-500/20">
+                <div className="flex flex-col space-y-4">
+                  <h3 className="text-lg font-semibold text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    ⚡ Choose Your Creation Method ⚡
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button
+                      variant={creationMode === 'manual' ? 'default' : 'outline'}
+                      className={`h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-300 ${
+                        creationMode === 'manual'
+                          ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg border-0'
+                          : 'border-indigo-500/40 text-indigo-300 hover:border-indigo-400 hover:bg-indigo-500/10 bg-slate-800/50'
+                      }`}
+                      onClick={() => setCreationMode('manual')}
+                    >
+                      <Wand2 className="h-8 w-8" />
+                      <div className="text-center">
+                        <div className="font-semibold">Manual Creation</div>
+                        <div className="text-xs opacity-80">Full control over all story elements</div>
+                      </div>
+                    </Button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block flex items-center">
-                      <BookOpen className="h-4 w-4 mr-2 text-red-500" />
-                      Epic Title
-                    </label>
-                    <Input
-                      placeholder="Name your legendary tale..."
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="bg-slate-900/80 border-red-500/30 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
-                    />
+                    <Button
+                      variant={creationMode === 'upload' ? 'default' : 'outline'}
+                      className={`h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-300 ${
+                        creationMode === 'upload'
+                          ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg border-0'
+                          : 'border-blue-500/40 text-blue-300 hover:border-blue-400 hover:bg-blue-500/10 bg-slate-800/50'
+                      }`}
+                      onClick={() => setCreationMode('upload')}
+                    >
+                      <Upload className="h-8 w-8" />
+                      <div className="text-center">
+                        <div className="font-semibold">Upload & Generate</div>
+                        <div className="text-xs opacity-80">Upload content + title & author</div>
+                      </div>
+                    </Button>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block flex items-center">
-                      <User className="h-4 w-4 mr-2 text-green-500" />
-                      Author Name *
-                    </label>
-                    <Input
-                      placeholder="Who created this masterpiece? (Required for minting)"
-                      value={author}
-                      onChange={(e) => setAuthor(e.target.value)}
-                      className="bg-slate-900/80 border-green-500/30 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block flex items-center">
-                      <MapPin className="h-4 w-4 mr-2 text-pink-500" />
-                      Realm & Domain
-                    </label>
-                    <Input
-                      placeholder="Which mystical realm hosts your adventure?"
-                      value={setting}
-                      onChange={(e) => setSetting(e.target.value)}
-                      className="bg-slate-900/80 border-pink-500/30 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block flex items-center">
-                    <Users className="h-4 w-4 mr-2 text-purple-500" />
-                    Heroes & Legends
-                  </label>
-                  <Input
-                    placeholder="Who are the brave souls in your epic? Describe their essence..."
-                    value={mainCharacters}
-                    onChange={(e) => setMainCharacters(e.target.value)}
-                    className="bg-slate-900/80 border-purple-500/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block flex items-center">
-                    <Wand2 className="h-4 w-4 mr-2 text-blue-500" />
-                    Tale Archetypes *
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {genres.map((genre) => (
-                      <Badge
-                        key={genre}
-                        variant={
-                          selectedGenres.includes(genre) ? 'default' : 'outline'
-                        }
-                        className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                          selectedGenres.includes(genre)
-                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg border-0'
-                            : 'border-orange-500/40 text-orange-300 hover:border-orange-400 hover:bg-orange-500/10 bg-slate-800/50'
-                        }`}
-                        onClick={() => handleGenreToggle(genre)}
-                      >
-                        {genre}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    ✨ Choose the mystical forces that will shape your narrative (Required for minting)
+                  <p className="text-center text-sm text-slate-400">
+                    {creationMode === 'manual' 
+                      ? '🎯 Craft every detail of your story from scratch with full customization options'
+                      : '📚 Upload existing content and let AI transform it with minimal input required'
+                    }
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                {creationMode === 'manual' ? (
+                  // Manual Creation Mode - All Input Fields
+                  <>
+                    <div className="relative">
+                      <label className="text-sm font-medium mb-2 flex items-center">
+                        <Lightbulb className="h-4 w-4 mr-2 text-orange-500" />
+                        Spark of Inspiration *
+                      </label>
+                      <Textarea
+                        placeholder="Whisper your tale's essence... What legendary story burns within your imagination?"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="min-h-[120px] bg-slate-900/80 border-orange-500/30 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                      />
+                      <div className="absolute top-2 right-2 text-xs text-orange-400 opacity-60">
+                        ✨ Let creativity flow
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <BookOpen className="h-4 w-4 mr-2 text-red-500" />
+                          Epic Title
+                        </label>
+                        <Input
+                          placeholder="Name your legendary tale..."
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="bg-slate-900/80 border-red-500/30 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <User className="h-4 w-4 mr-2 text-green-500" />
+                          Author Name *
+                        </label>
+                        <Input
+                          placeholder="Who created this masterpiece? (Required for minting)"
+                          value={author}
+                          onChange={(e) => setAuthor(e.target.value)}
+                          className="bg-slate-900/80 border-green-500/30 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 text-pink-500" />
+                          Realm & Domain
+                        </label>
+                        <Input
+                          placeholder="Which mystical realm hosts your adventure?"
+                          value={setting}
+                          onChange={(e) => setSetting(e.target.value)}
+                          className="bg-slate-900/80 border-pink-500/30 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <Users className="h-4 w-4 mr-2 text-purple-500" />
+                          Heroes & Legends
+                        </label>
+                        <Input
+                          placeholder="Who are the brave souls in your epic? Describe their essence..."
+                          value={mainCharacters}
+                          onChange={(e) => setMainCharacters(e.target.value)}
+                          className="bg-slate-900/80 border-purple-500/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 flex items-center">
+                        <Wand2 className="h-4 w-4 mr-2 text-blue-500" />
+                        Tale Archetypes *
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {genres.map((genre) => (
+                          <Badge
+                            key={genre}
+                            variant={
+                              selectedGenres.includes(genre) ? 'default' : 'outline'
+                            }
+                            className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                              selectedGenres.includes(genre)
+                                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg border-0'
+                                : 'border-orange-500/40 text-orange-300 hover:border-orange-400 hover:bg-orange-500/10 bg-slate-800/50'
+                            }`}
+                            onClick={() => handleGenreToggle(genre)}
+                          >
+                            {genre}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        ✨ Choose the mystical forces that will shape your narrative (Required for minting)
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  // Upload Mode - Simplified Input
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <BookOpen className="h-4 w-4 mr-2 text-red-500" />
+                          Epic Title *
+                        </label>
+                        <Input
+                          placeholder="Name your legendary tale..."
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="bg-slate-900/80 border-red-500/30 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 flex items-center">
+                          <User className="h-4 w-4 mr-2 text-green-500" />
+                          Author Name *
+                        </label>
+                        <Input
+                          placeholder="Who created this masterpiece?"
+                          value={author}
+                          onChange={(e) => setAuthor(e.target.value)}
+                          className="bg-slate-900/80 border-green-500/30 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* File Upload Section */}
+                    <div className="border-2 border-dashed border-blue-500/40 rounded-xl p-6 bg-slate-900/60 backdrop-blur-sm relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 animate-pulse"></div>
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                          <label className="text-lg font-semibold flex items-center text-blue-400">
+                            <Upload className="h-6 w-6 mr-3 text-blue-400" />
+                            Upload Source Material *
+                          </label>
+                          {uploadedFile && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={clearUploadedFile}
+                              className="border-red-500/50 text-red-300 hover:bg-red-500/10 bg-slate-800/50"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+
+                        {uploadedFile ? (
+                          <div className="bg-slate-800/60 p-4 rounded-lg border border-slate-600/30">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <File className="h-8 w-8 text-blue-400" />
+                              <div>
+                                <p className="font-medium text-blue-400">{uploadedFile.name}</p>
+                                <p className="text-xs text-slate-400">
+                                  {(uploadedFile.size / 1024).toFixed(1)} KB • {uploadedFile.type}
+                                </p>
+                              </div>
+                            </div>
+                            {fileContent && fileContent !== 'Please paste the content from your PDF file here...' && fileContent !== 'Please paste the content from your document here...' && (
+                              <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/30 max-h-32 overflow-y-auto">
+                                <p className="text-xs text-slate-300 leading-relaxed">
+                                  {fileContent.substring(0, 300)}
+                                  {fileContent.length > 300 && '...'}
+                                </p>
+                              </div>
+                            )}
+                            <div className="mt-3 text-xs text-slate-400">
+                              ✨ File content will be used as the basis for your story generation
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="border-2 border-dashed border-blue-500/30 rounded-lg p-8 text-center hover:border-blue-400/50 transition-colors duration-300 cursor-pointer"
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept=".txt,.md,.pdf,.doc,.docx"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                            />
+                            
+                            {isProcessingFile ? (
+                              <div className="flex items-center justify-center space-x-3">
+                                <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+                                <span className="text-blue-400">Processing file...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Upload className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-blue-400 mb-2">
+                                  Upload Source Document
+                                </h3>
+                                <p className="text-slate-400 mb-4 max-w-md mx-auto">
+                                  Drop your file here or click to browse. Support for text files, markdown, PDF, and Word documents.
+                                </p>
+                                <div className="flex items-center justify-center space-x-4 text-xs text-slate-500">
+                                  <span>.txt</span>
+                                  <span>•</span>
+                                  <span>.md</span>
+                                  <span>•</span>
+                                  <span>.pdf</span>
+                                  <span>•</span>
+                                  <span>.doc/.docx</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        <p className="text-sm text-slate-300 leading-relaxed mt-4">
+                          📚 Upload existing content to transform into a new story. The AI will analyze your document and create an original narrative based on its themes and content.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Genres Selection for Upload Mode */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 flex items-center">
+                        <Wand2 className="h-4 w-4 mr-2 text-blue-500" />
+                        Tale Archetypes *
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {genres.map((genre) => (
+                          <Badge
+                            key={genre}
+                            variant={
+                              selectedGenres.includes(genre) ? 'default' : 'outline'
+                            }
+                            className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                              selectedGenres.includes(genre)
+                                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg border-0'
+                                : 'border-orange-500/40 text-orange-300 hover:border-orange-400 hover:bg-orange-500/10 bg-slate-800/50'
+                            }`}
+                            onClick={() => handleGenreToggle(genre)}
+                          >
+                            {genre}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        ✨ Choose the mystical forces that will shape your narrative (Required for minting)
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block flex items-center">
+                  <label className="text-sm font-medium mb-2 flex items-center">
                     <BookOpen className="h-4 w-4 mr-2 text-teal-500" />
                     Chronicle Length
                   </label>
@@ -632,9 +1017,15 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                   </div>
                 </div>
 
+
+
                 <Button
                   onClick={generateStory}
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={
+                    isGenerating ||
+                    (creationMode === 'manual' && !prompt.trim()) ||
+                    (creationMode === 'upload' && (!title.trim() || !author.trim() || !uploadedFile))
+                  }
                   className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
                   size="lg"
                 >
@@ -805,12 +1196,12 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                           <strong>Images:</strong> {generatedImages.length}{' '}
                           generated
                         </p>
-                        <p>
+                        {/* <p>
                           <strong>Setting:</strong> {setting || 'Not specified'}
                         </p>
                         <p>
                           <strong>Themes:</strong> {themes || 'Not specified'}
-                        </p>
+                        </p> */}
                         <p>
                           <strong>Content Type:</strong>{' '}
                           {generatedImages.length > 0
