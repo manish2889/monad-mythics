@@ -66,7 +66,7 @@ export default function Home() {
                       Connect Wallet
                     </Button>
                   ) : (
-                    <Link href="/gallery?highlight=0">
+                    <Link href="/gallery">
                       <Button
                         size="lg"
                         className="bg-gradient-to-r from-purple-600 to-pink-500 shadow-lg shadow-purple-500/20"

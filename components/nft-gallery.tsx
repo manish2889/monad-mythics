@@ -18,11 +18,21 @@ import { getIPFSUrl, getIPFSFallbackUrls } from '@/utils/ipfs';
 
 // Helper: fetch IPFS JSON/Text with gateway fallbacks
 const sanitizeCid = (raw: string) => raw.replace(/^ipfs:\/\//, '').replace(/^\/?ipfs\//, '');
-// Basic base58btc CIDv0 validator (starts with Qm and 46 chars, no 0/O/I/l)
-const isLikelyValidCidV0 = (cid: string) => /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid);
+// CID validator for both CIDv0 and CIDv1 formats
+const isLikelyValidCid = (cid: string) => {
+  // Check for null/zero CIDs (placeholder values)
+  if (/^Qm0+[a-z0-9]*$/i.test(cid) || cid.includes('000000000000000000000000000000')) {
+    return false; // These are null/placeholder CIDs
+  }
+  // CIDv0: starts with Qm and 46 chars total, base58btc encoding
+  if (/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid)) return true;
+  // CIDv1: starts with baf and is typically 59+ chars, be more permissive with character set
+  if (/^baf[a-z0-9]{50,}$/i.test(cid)) return true;
+  return false;
+};
 const fetchFromIPFS = async (cid: string, as: 'json' | 'text') => {
   const clean = sanitizeCid(cid);
-  if (!isLikelyValidCidV0(clean)) {
+  if (!isLikelyValidCid(clean)) {
     throw new Error('Invalid CID');
   }
 
@@ -81,12 +91,269 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
   const { connected, account } = useWeb3();
   const { toast } = useToast();
 
+  // Load locally cached NFTs (minted this session) so they are visible immediately
+  const loadCachedNFTs = () => {
+    try {
+      if (typeof window === 'undefined') return { cached: [] as StoryNFT[], maxId: 0 };
+      const cached: StoryNFT[] = [];
+      let maxId = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || '';
+        if (!key.startsWith('story_nft_')) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const data = JSON.parse(raw);
+          const tokenId = String(data.tokenId ?? '').trim();
+          if (!tokenId) continue;
+          const tnum = Number(tokenId);
+          if (!Number.isNaN(tnum)) maxId = Math.max(maxId, tnum);
+          const attributes = data.metadata?.attributes || [];
+          const getAttr = (name: string) => attributes.find((a: any) => a?.trait_type === name)?.value || 'Unknown';
+          const images = Array.isArray(data.images)
+            ? data.images.map((img: any) => ({ url: img.url, chapter: img.chapter, description: img.description }))
+            : [];
+          const item: StoryNFT = {
+            tokenId,
+            title: data.metadata?.name || `Story NFT #${tokenId}`,
+            description: data.metadata?.description || 'AI-generated story NFT',
+            storyContent: data.storyContent || 'Story content not available',
+            imageUrl: data.metadata?.image || images[0]?.url,
+            owner: '0xLOCALCACHE',
+            genre: getAttr('Genre'),
+            author: getAttr('Author'),
+            aiModel: 'Not specified',
+            createdAt: getAttr('Created At'),
+            imageCount: images.length,
+            contentType: images.length > 0 ? 'Text + Images' : 'Text Only',
+            images,
+          };
+          cached.push(item);
+        } catch {}
+      }
+      // Deduplicate by tokenId in case of multiple writes
+      const map = new Map<string, StoryNFT>();
+      for (const c of cached) map.set(c.tokenId, c);
+      return { cached: Array.from(map.values()), maxId };
+    } catch {
+      return { cached: [] as StoryNFT[], maxId: 0 };
+    }
+  };
+
   useEffect(() => {
     // Only auto-fetch if wallet is connected, or if we have a highlight token to show
-    if (connected || highlightTokenId) {
+    const { cached, maxId } = loadCachedNFTs();
+    if (cached.length > 0) {
+      // Merge with existing (dedupe by tokenId)
+      setNfts((prev) => {
+        const ids = new Set(prev.map((n) => n.tokenId));
+        const merged = [...prev];
+        for (const c of cached) if (!ids.has(c.tokenId)) merged.push(c);
+        return merged;
+      });
+      // Bias scan start around cached max if no highlight is provided
+      if (!highlightTokenId && maxTokensChecked === 0) {
+        setMaxTokensChecked(Math.max(0, maxId - 5));
+      }
+    }
+    if (connected || highlightTokenId || cached.length > 0) {
       fetchNFTs();
     }
   }, [connected, account, highlightTokenId]);
+
+  const fetchNFTData = async (tokenId: number): Promise<StoryNFT | null> => {
+    try {
+      const { MonadStoryNFTReader } = await import('@/lib/contracts/monadStoryNFT');
+      
+      // Check if token exists by trying to get owner
+      // This will throw an error if token doesn't exist, which is expected
+      let owner: string;
+      try {
+        owner = await MonadStoryNFTReader.getOwnerOf(tokenId);
+      } catch (error: any) {
+        // Token doesn't exist - this is normal for non-minted tokens
+        // Check for various nonexistent token error patterns
+        const errorMsg = error?.message || '';
+        const isNonExistentToken = errorMsg.includes('ERC721NonexistentToken') ||
+                                   errorMsg.includes('nonexistent') ||
+                                   errorMsg.includes('ERC721:') ||
+                                   errorMsg.includes('owner query for nonexistent token') ||
+                                   errorMsg.includes('ERC721NonexistentToken(uint256') ||
+                                   errorMsg.includes('execution reverted') ||
+                                   errorMsg.includes('Invalid parameters were provided to the RPC method') ||
+                                   errorMsg.includes('Block requested not found') ||
+                                   error?.name === 'ContractFunctionRevertedError';
+
+        if (isNonExistentToken) {
+          // Silently handle non-existent tokens - this is expected
+          return null;
+        }
+
+        // Handle rate limiting
+        if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
+          console.warn(`Rate limited when checking token ${tokenId}, skipping...`);
+          return null;
+        }
+
+        // Re-throw other errors
+        console.error(`Unexpected error for token ${tokenId}:`, error);
+        return null;
+      }
+
+      // Get token URI and story details
+      const [tokenURI, storyDetails] = await Promise.all([
+        MonadStoryNFTReader.getTokenURI(tokenId),
+        MonadStoryNFTReader.getStoryDetails(tokenId),
+      ]);
+
+      // Parse metadata from tokenURI
+      let metadata: any = {};
+      let usedLocalCache = false;
+
+      // Handle different URI formats and clean up any double prefixes
+      let normalizedTokenURI = tokenURI;
+      if (normalizedTokenURI.startsWith('ipfs://ipfs://')) {
+        normalizedTokenURI = normalizedTokenURI.replace('ipfs://ipfs://', 'ipfs://');
+      }
+      if (normalizedTokenURI.startsWith('ipfs://data:')) {
+        normalizedTokenURI = normalizedTokenURI.replace('ipfs://', '');
+      }
+
+      if (normalizedTokenURI.startsWith('data:application/json;base64,')) {
+        const base64Data = normalizedTokenURI.replace('data:application/json;base64,', '');
+        const jsonString = atob(base64Data);
+        metadata = JSON.parse(jsonString);
+      } else if (normalizedTokenURI.startsWith('ipfs://')) {
+        const cid = normalizedTokenURI.replace('ipfs://', '');
+        if (isLikelyValidCid(cid)) {
+          try {
+            console.log(`Fetching metadata from IPFS for token ${tokenId}, CID:`, cid);
+            metadata = await fetchFromIPFS(cid, 'json');
+            console.log(`Successfully fetched metadata for token ${tokenId}:`, metadata);
+          } catch (e) {
+            console.warn(`Failed to fetch metadata from IPFS for token ${tokenId}:`, e);
+            // Will try localStorage fallback below
+          }
+        } else {
+          const isNullCid = cid.includes('000000000000000000000000000000') || /^Qm0+[a-z0-9]*$/i.test(cid);
+          if (isNullCid) {
+            console.warn(`Token ${tokenId} has null/placeholder CID - IPFS content not uploaded. Will try localStorage fallback.`);
+          } else {
+            console.warn(`Invalid CID for token ${tokenId}:`, cid, '(extracted from:', normalizedTokenURI, ')');
+          }
+          // Invalid CID - will rely on local cache below
+        }
+      }
+
+      // Parse story content from storyHash
+      let storyContent = 'Story content not available';
+      let storyHash = storyDetails.storyHash;
+      
+      // Clean up double IPFS prefixes in story hash
+      if (storyHash.startsWith('ipfs://ipfs://')) {
+        storyHash = storyHash.replace('ipfs://ipfs://', 'ipfs://');
+      }
+
+      if (storyHash.startsWith('data:text/plain;base64,')) {
+        const base64Data = storyHash.replace('data:text/plain;base64,', '');
+        storyContent = atob(base64Data);
+      } else if (storyHash.startsWith('ipfs://')) {
+        const cid = storyHash.replace('ipfs://', '');
+        if (isLikelyValidCid(cid)) {
+          try {
+            console.log(`Fetching story content from IPFS for token ${tokenId}, CID:`, cid);
+            storyContent = await fetchFromIPFS(cid, 'text');
+            console.log(`Successfully fetched story content for token ${tokenId}:`, storyContent.substring(0, 100) + '...');
+          } catch (e) {
+            console.warn(`Failed to fetch story content from IPFS for token ${tokenId}:`, e);
+            // Will try localStorage fallback below
+          }
+        } else {
+          const isNullCid = cid.includes('000000000000000000000000000000') || /^Qm0+[a-z0-9]*$/i.test(cid);
+          if (isNullCid) {
+            console.warn(`Token ${tokenId} has null/placeholder story CID - IPFS content not uploaded. Will try localStorage fallback.`);
+          } else {
+            console.warn(`Invalid story CID for token ${tokenId}:`, cid, '(extracted from:', storyHash, ')');
+          }
+        }
+      }
+
+      // Try localStorage fallback if IPFS failed or data is incomplete
+      try {
+        if (typeof window !== 'undefined') {
+          const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
+          if (cacheRaw) {
+            const cache = JSON.parse(cacheRaw);
+            console.log(`Found localStorage cache for token ${tokenId}:`, cache);
+            
+            // Always use cache if IPFS failed (null CIDs)
+            if (!metadata.name || storyContent === 'Story content not available') {
+              usedLocalCache = true;
+              console.log(`Using localStorage fallback for token ${tokenId}`);
+              
+              // Merge cached metadata with what we have
+              metadata = { ...metadata, ...(cache.metadata || {}) };
+              if (!metadata.image && cache.metadata?.image) {
+                metadata.image = cache.metadata.image;
+              }
+              
+              // Use cached story content if we don't have it
+              if (storyContent === 'Story content not available' && cache.storyContent) {
+                storyContent = cache.storyContent;
+              }
+            }
+          } else {
+            console.log(`No localStorage cache found for token ${tokenId}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`Error accessing localStorage for token ${tokenId}:`, e);
+      }
+
+      // Parse images from metadata or localStorage
+      let imagesArr: { url: string; chapter?: string; description?: string }[] = [];
+      try {
+        if ((typeof window !== 'undefined')) {
+          const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
+          if (cacheRaw) {
+            const cache = JSON.parse(cacheRaw);
+            if (cache.images && Array.isArray(cache.images)) {
+              imagesArr = cache.images.map((img: any) => ({
+                url: img.url || img,
+                chapter: img.chapter,
+                description: img.description
+              }));
+            }
+          }
+        }
+      } catch (e) {
+        // ignore cache errors
+      }
+
+      // Determine content type
+      const contentType = Number(storyDetails.contentType);
+
+      return {
+        tokenId: tokenId.toString(),
+        title: metadata.name || `Story NFT #${tokenId}`,
+        description: metadata.description || 'No description available',
+        imageUrl: metadata.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
+        storyContent,
+        owner,
+        genre: metadata.attributes?.find((attr: any) => attr.trait_type === 'Genre')?.value || 'Unknown',
+        author: metadata.attributes?.find((attr: any) => attr.trait_type === 'Author')?.value || 'Unknown',
+        aiModel: 'Not specified', // Removed AI model as requested
+        createdAt: metadata.attributes?.find((attr: any) => attr.trait_type === 'Created At')?.value || 'Unknown',
+        imageCount: Number(storyDetails.imageCount),
+        contentType: contentType === 0 ? 'Text Only' : 'Text + Images',
+        // attach parsed images for UI consumption
+        images: imagesArr,
+      };
+    } catch (error) {
+      // Token doesn't exist or error fetching
+      return null;
+    }
+  };
 
   const fetchNFTs = async (loadMore = false) => {
     setIsLoading(true);
@@ -95,31 +362,89 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
       const { MonadStoryNFTReader, MONAD_STORY_NFT_ADDRESS } = await import('@/lib/contracts/monadStoryNFT');
       
       // Fetch NFTs sequentially with delays to avoid rate limiting
+      const existingIds = new Set((loadMore ? nfts : []).map((n) => Number(n.tokenId)));
       const validNFTs: StoryNFT[] = loadMore ? [...nfts] : [];
-      const startToken = loadMore ? maxTokensChecked : 0;
-      const tokensToCheck = 5; // Check 5 tokens at a time
-      const endToken = startToken + tokensToCheck;
-      
-      for (let i = startToken; i < endToken; i++) {
-        try {
-          const nft = await fetchNFTData(i);
-          if (nft) {
-            validNFTs.push(nft);
+
+      // 0) Since API is having issues, let's directly try the known token IDs 0,1,2,3,4
+      if (!loadMore) {
+        console.log('Trying known token IDs: 0, 1, 2, 3, 4');
+        const knownIds = [4, 3, 2, 1, 0]; // reverse order to show newest first
+        for (const id of knownIds) {
+          if (existingIds.has(id)) continue;
+          try {
+            console.log(`Fetching NFT data for known token ${id}`);
+            const seeded = await fetchNFTData(id);
+            if (seeded) {
+              console.log(`Successfully loaded NFT ${id}:`, seeded.title);
+              validNFTs.push(seeded);
+              existingIds.add(id);
+              // slight delay to avoid rate limiting
+              await new Promise((r) => setTimeout(r, 300));
+            } else {
+              console.log(`No data returned for token ${id}`);
+            }
+          } catch (e) {
+            console.warn(`Failed to fetch token ${id}:`, e);
           }
-          
-          // Add delay between requests to avoid rate limiting
-          if (i < endToken - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
+        }
+      }
+
+      // If we have a highlight token, scan a window around it to pick up nearby recent mints
+      let startToken = loadMore ? maxTokensChecked : (maxTokensChecked || 0);
+      let tokensToCheck = 5;
+      if (!loadMore && highlightTokenId) {
+        const hl = Number(highlightTokenId);
+        startToken = Math.max(0, hl - 10);
+        tokensToCheck = 25; // scan a larger window around highlight
+      }
+      let endToken = startToken + tokensToCheck;
+      let consecutiveMisses = 0;
+      const maxConsecutiveMisses = 10; // stop early if we seem past the end
+      const minDesired = 8; // try to show at least this many per fetch
+      const hardCallCap = 200; // do not exceed this many owner/token calls per fetch
+      let calls = 0;
+
+      // Skip range scanning if we already found NFTs from known IDs
+      if (validNFTs.length >= 5) {
+        console.log(`Already found ${validNFTs.length} NFTs, skipping range scan`);
+      } else {
+        console.log(`Starting range scan from ${startToken} to ${endToken}, already have ${validNFTs.length} NFTs`);
+        for (let i = startToken; i < endToken && calls < hardCallCap; i++) {
+          try {
+            // Deduplicate
+            if (existingIds.has(i)) continue;
+
+            calls++;
+            console.log(`Range scanning token ${i}...`);
+            const nft = await fetchNFTData(i);
+            if (nft) {
+              console.log(`Range scan found NFT ${i}:`, nft.title);
+              validNFTs.push(nft);
+              existingIds.add(i);
+              consecutiveMisses = 0; // reset on success
+            } else {
+              consecutiveMisses++;
+              console.log(`Token ${i} not found, consecutive misses: ${consecutiveMisses}`);
+              // Don't stop early if we haven't found many NFTs yet - keep scanning
+              if (consecutiveMisses >= maxConsecutiveMisses && validNFTs.length >= 3) {
+                // Only stop if we have found several NFTs and hit many consecutive misses
+                console.log(`Stopping range scan after ${consecutiveMisses} consecutive misses with ${validNFTs.length} NFTs found`);
+                break;
+              }
+            }
+            
+            // Add delay between requests to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (error: any) {
+            console.warn(`Failed to fetch NFT ${i}:`, error.message?.substring(0, 100));
+            
+            // If we get rate limited, add a longer delay
+            if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+              console.log('Rate limited, waiting 2 seconds...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            // Continue with next token - don't let one failure stop the whole process
           }
-        } catch (error: any) {
-          console.warn(`Failed to fetch NFT ${i}:`, error.message?.substring(0, 100));
-          
-          // If we get rate limited, add a longer delay
-          if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-            console.log('Rate limited, waiting 2 seconds...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          // Continue with next token - don't let one failure stop the whole process
         }
       }
       
@@ -140,156 +465,6 @@ export function NFTGallery({ highlightTokenId }: NFTGalleryProps) {
     }
   };
 
-  const fetchNFTData = async (tokenId: number): Promise<StoryNFT | null> => {
-    try {
-      const { MonadStoryNFTReader } = await import('@/lib/contracts/monadStoryNFT');
-      
-      // Check if token exists by trying to get owner
-      // This will throw an error if token doesn't exist, which is expected
-      let owner: string;
-      try {
-        owner = await MonadStoryNFTReader.getOwnerOf(tokenId);
-      } catch (error: any) {
-        // Token doesn't exist - this is normal for non-minted tokens
-        // Check for various nonexistent token error patterns
-        const errorMsg = error?.message || '';
-        const isNonExistentToken = errorMsg.includes('ERC721NonexistentToken') ||
-                                   errorMsg.includes('nonexistent') ||
-                                   errorMsg.includes('ERC721:') ||
-                                   errorMsg.includes('owner query for nonexistent token') ||
-                                   errorMsg.includes('ERC721NonexistentToken(uint256') ||
-                                   errorMsg.includes('Invalid parameters were provided to the RPC method') ||
-                                   errorMsg.includes('Block requested not found') ||
-                                   error?.name === 'ContractFunctionRevertedError';
-
-        if (isNonExistentToken) {
-          // Silently handle non-existent tokens - this is expected
-          return null;
-        }
-
-        // Handle rate limiting
-        if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
-          console.warn(`Rate limited when checking token ${tokenId}, skipping...`);
-          return null;
-        }
-
-        // Re-throw other errors
-        console.error(`Unexpected error for token ${tokenId}:`, error);
-        throw error;
-      }
-      
-      if (!owner || owner === '0x0000000000000000000000000000000000000000') {
-        return null;
-      }
-
-      // Get story details
-      const storyDetails = await MonadStoryNFTReader.getStoryDetails(tokenId);
-      const tokenURI = await MonadStoryNFTReader.getTokenURI(tokenId);
-      const contentType = await MonadStoryNFTReader.getContentType(tokenId);
-
-      // Normalize weird cases where tokenURI is like ipfs://data:application/json;base64,...
-      let normalizedTokenURI = tokenURI.startsWith('ipfs://data:')
-        ? tokenURI.replace('ipfs://', '')
-        : tokenURI;
-
-      // Parse metadata from tokenURI (base64 or IPFS JSON)
-      let metadata: any = {};
-      let usedLocalCache = false;
-      try {
-        if (normalizedTokenURI.startsWith('data:application/json;base64,')) {
-          const base64Data = normalizedTokenURI.replace('data:application/json;base64,', '');
-          const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8');
-          metadata = JSON.parse(jsonString);
-        } else if (normalizedTokenURI.startsWith('ipfs://')) {
-          const cid = normalizedTokenURI.replace('ipfs://', '');
-          if (isLikelyValidCidV0(cid)) {
-            metadata = await fetchFromIPFS(cid, 'json');
-          } else {
-            // Invalid CID - will rely on local cache below
-          }
-        }
-      } catch (e) {
-        console.warn('Could not parse metadata for token', tokenId);
-      }
-
-      // Parse story content from storyHash (base64 or IPFS)
-      let storyContent = 'Story content not available';
-      try {
-        const normalizedStoryHash = storyDetails.storyHash.startsWith('ipfs://data:')
-          ? storyDetails.storyHash.replace('ipfs://', '')
-          : storyDetails.storyHash;
-        if (normalizedStoryHash.startsWith('data:text/plain;base64,')) {
-          const base64Data = normalizedStoryHash.replace('data:text/plain;base64,', '');
-          storyContent = Buffer.from(base64Data, 'base64').toString('utf-8');
-        } else if (normalizedStoryHash.startsWith('ipfs://')) {
-          const cid = normalizedStoryHash.replace('ipfs://', '');
-          if (isLikelyValidCidV0(cid)) {
-            storyContent = await fetchFromIPFS(cid, 'text');
-          } else {
-            // Invalid CID - will rely on local cache below
-          }
-        }
-      } catch (e) {
-        console.warn('Could not parse story content for token', tokenId);
-      }
-
-      // LocalStorage fallback if IPFS failed or gave minimal data
-      try {
-        if ((typeof window !== 'undefined') && (!metadata.name || storyContent === 'Story content not available')) {
-          const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
-          if (cacheRaw) {
-            const cache = JSON.parse(cacheRaw);
-            usedLocalCache = true;
-            metadata = { ...metadata, ...(cache.metadata || {}) };
-            if (!metadata.image && cache.metadata?.image) metadata.image = cache.metadata.image;
-            storyContent = cache.storyContent || storyContent;
-          }
-        }
-      } catch (e) {
-        // ignore cache errors
-      }
-
-      const imagesArr: { url: string; chapter?: string; description?: string }[] = Array.isArray(metadata.images) ? metadata.images : (Array.isArray(metadata.content_images) ? metadata.content_images.map((u: string) => ({ url: u })) : []);
-      // If still empty, use cached images
-      if ((!imagesArr || imagesArr.length === 0) && typeof window !== 'undefined') {
-        try {
-          const cacheRaw = localStorage.getItem(`story_nft_${tokenId}`);
-          if (cacheRaw) {
-            const cache = JSON.parse(cacheRaw);
-            if (Array.isArray(cache.images) && cache.images.length > 0) {
-              metadata.image = metadata.image || cache.images[0]?.url;
-              metadata.images = cache.images.map((img: any) => ({ url: img.url, chapter: img.chapter, description: img.description }));
-            }
-          }
-        } catch {}
-      }
-
-      // If we still don't have usable metadata and no cache, skip this token silently
-      if (!metadata.name && (!metadata.images || metadata.images.length === 0) && storyContent === 'Story content not available') {
-        return null;
-      }
-
-      return {
-        tokenId: tokenId.toString(),
-        title: metadata.name || `Story NFT #${tokenId}`,
-        description: metadata.description || 'AI-generated story NFT',
-        storyContent: metadata.full_story || storyContent, // Always keep full story for modal view
-        imageUrl: metadata.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
-        owner,
-        genre: metadata.attributes?.find((attr: any) => attr.trait_type === 'Genre')?.value || 'Unknown',
-        author: metadata.attributes?.find((attr: any) => attr.trait_type === 'Author')?.value || 'Unknown',
-        aiModel: 'Not specified', // Removed AI model as requested
-        createdAt: metadata.attributes?.find((attr: any) => attr.trait_type === 'Created At')?.value || 'Unknown',
-        imageCount: Number(storyDetails.imageCount),
-        contentType: contentType === 0 ? 'Text Only' : 'Text + Images',
-        // attach parsed images for UI consumption
-        images: imagesArr,
-      };
-    } catch (error) {
-      // Token doesn't exist or error fetching
-      return null;
-    }
-  };
 
   const openStoryModal = (nft: StoryNFT) => {
     setSelectedNFT(nft);
