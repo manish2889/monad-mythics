@@ -205,29 +205,32 @@ function AIStoryContent() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-12">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl btn-comic"
-              onClick={() => {
-                // Direct navigation with URL parameters
-                window.location.href = `/create/ai-story?source=homepage&format=free`;
-              }}
-            >
-              <Wand2 className="mr-2 h-5 w-5" />✨ Begin Forging ✨
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:border-orange-500 btn-spring"
-              asChild
-            >
-              <Link href="/stories">
-                <BookOpen className="mr-2 h-5 w-5" />
-                📚 Browse Legends
-              </Link>
-            </Button>
-          </div>
+        {/* <div className="flex flex-col sm:flex-row gap-4 max-w-lg ml-8">
+  <Button
+    size="lg"
+    className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl btn-comic"
+    onClick={() => {
+      // Direct navigation with URL parameters
+      window.location.href = `/create/ai-story?source=homepage&format=free`;
+    }}
+  >
+    <Wand2 className="mr-2 h-5 w-5" />✨ Begin Forging ✨
+  </Button>
+</div> */}
+
+<div className="flex flex-col sm:flex-row gap-4 max-w-lg ml-[330px]">
+  <Button
+    size="lg"
+    className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl btn-comic"
+    onClick={() => {
+      // Direct navigation with URL parameters
+      window.location.href = `/create/ai-story?source=homepage&format=free`;
+    }}
+  >
+    <Wand2 className="mr-2 h-5 w-5" />✨ Begin Forging ✨
+  </Button>
+</div>
+
         </div>
 
         <AIStoryGenerator />
