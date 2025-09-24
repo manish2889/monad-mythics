@@ -536,7 +536,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
       console.log('NFT minted successfully:', result);
 
       // Create the gallery URL to view the minted NFT
-      const nftUrl = `/gallery?highlight=${result.tokenId}`;
+      const nftUrl = `/gallery`;
       setMintedNftUrl(nftUrl);
 
       // Cache locally for gallery fallback
