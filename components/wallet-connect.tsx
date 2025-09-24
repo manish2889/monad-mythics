@@ -1,16 +1,12 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import {
   Wallet,
   ChevronDown,
   Copy,
   ExternalLink,
-  Coins,
   AlertCircle,
-  Check,
 } from 'lucide-react';
-import Image from 'next/image';
 import React, { useState, useCallback } from 'react';
 
 import { useWeb3 } from '@/components/providers/web3-provider';
@@ -55,7 +51,6 @@ export default function WalletConnect() {
     disconnectWallet,
     networkName,
     ensName,
-    switchNetwork,
   } = useWeb3();
 
   const { toast } = useToast();
@@ -164,7 +159,9 @@ export default function WalletConnect() {
                 </span>
               </div>
               <div className="h-4 w-px bg-slate-600" />
-              <span className="text-white font-mono">{ensName || formatAddress(account)}</span>
+              <span className="text-white font-mono">
+                {ensName || formatAddress(account)}
+              </span>
               <ChevronDown className="h-4 w-4 text-slate-400" />
             </div>
           </TooltipTrigger>
@@ -179,7 +176,12 @@ export default function WalletConnect() {
         <DropdownMenuTrigger className="sr-only" aria-hidden="true">
           Open menu
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72 bg-slate-900/95 border-slate-700/50 backdrop-blur-lg">
+        <DropdownMenuContent
+          align="start"
+          side="bottom"
+          sideOffset={4}
+          className="w-72 bg-slate-900/95 border-slate-700/50 backdrop-blur-lg"
+        >
           {/* Account Info */}
           <div className="px-4 py-3 border-b border-slate-700/50">
             <div className="flex items-center gap-3">
@@ -220,7 +222,7 @@ export default function WalletConnect() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={copyAddressToClipboard}
                     className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
                   >
@@ -234,7 +236,7 @@ export default function WalletConnect() {
               </Tooltip>
             </TooltipProvider>
 
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={viewOnExplorer}
               className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
             >
@@ -244,7 +246,7 @@ export default function WalletConnect() {
 
             <DropdownMenuSeparator className="bg-slate-700/50 my-2" />
 
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={disconnectWallet}
               className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors duration-200"
             >
