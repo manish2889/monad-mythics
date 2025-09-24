@@ -64,7 +64,7 @@ export default function Home() {
                       Connect Wallet
                     </Button>
                   ) : (
-                    <Link href="/nft-gallery">
+                    <Link href="/gallery?highlight=0">
                       <Button
                         size="lg"
                         className="bg-gradient-to-r from-purple-600 to-pink-500 shadow-lg shadow-purple-500/20"
