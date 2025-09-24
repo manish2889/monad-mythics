@@ -40,7 +40,7 @@
     --radius: 0.5rem;
     --theme-gradient: var(--light-gradient);
   }
-  
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -68,35 +68,71 @@
     --chart-5: 199 89% 48%;
     --theme-gradient: var(--dark-gradient);
   }
-  
+
   html {
     font-family: var(--font-comic);
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-comic);
-    background-image: radial-gradient(circle, rgba(255, 105, 180, 0.2) 2px, transparent 2px), radial-gradient(circle, rgba(0, 255, 136, 0.2) 2px, transparent 2px), linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    background-size: 15px 15px, 15px 15px, 100% 100%;
-    background-position: 0 0, 7.5px 7.5px, 0 0;
+    background-image:
+      radial-gradient(circle, rgba(255, 105, 180, 0.2) 2px, transparent 2px),
+      radial-gradient(circle, rgba(0, 255, 136, 0.2) 2px, transparent 2px),
+      linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.05)
+      );
+    background-size:
+      15px 15px,
+      15px 15px,
+      100% 100%;
+    background-position:
+      0 0,
+      7.5px 7.5px,
+      0 0;
     content-visibility: auto;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-comic);
     font-weight: 700;
   }
 
-  button, input, select, textarea {
+  button,
+  input,
+  select,
+  textarea {
     font-family: var(--font-comic);
   }
-  
+
   .dark body {
-    background-image: radial-gradient(circle, rgba(255, 105, 180, 0.1) 2px, transparent 2px), radial-gradient(circle, rgba(0, 255, 136, 0.1) 2px, transparent 2px), linear-gradient(45deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-    background-size: 15px 15px, 15px 15px, 100% 100%;
-    background-position: 0 0, 7.5px 7.5px, 0 0;
+    background-image:
+      radial-gradient(circle, rgba(255, 105, 180, 0.1) 2px, transparent 2px),
+      radial-gradient(circle, rgba(0, 255, 136, 0.1) 2px, transparent 2px),
+      linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.02),
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.02)
+      );
+    background-size:
+      15px 15px,
+      15px 15px,
+      100% 100%;
+    background-position:
+      0 0,
+      7.5px 7.5px,
+      0 0;
   }
-  
+
   /* Prevent flicker on theme change */
   html.no-transitions * {
     transition: none !important;
@@ -117,16 +153,16 @@
   }
 
   /* Layer promotion for fixed elements to improve scrolling */
-  .fixed, 
+  .fixed,
   .sticky {
     will-change: transform;
   }
 
   /* Improve paint performance for common UI elements */
-  button, 
-  a, 
-  input, 
-  select, 
+  button,
+  a,
+  input,
+  select,
   textarea {
     transform: translateZ(0);
   }
@@ -134,20 +170,27 @@
   * {
     @apply border-border;
   }
-  
+
   /* Style all textareas and inputs with dark navy blue background */
-  textarea, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"] {
+  textarea,
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='number'],
+  input[type='search'] {
     background-color: rgb(15, 23, 42) !important; /* Dark navy blue */
     border-color: rgba(59, 130, 246, 0.2) !important;
     color: rgb(226, 232, 240) !important;
   }
 
-  textarea:focus, input:focus {
+  textarea:focus,
+  input:focus {
     border-color: rgba(59, 130, 246, 0.5) !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
   }
 
-  textarea::placeholder, input::placeholder {
+  textarea::placeholder,
+  input::placeholder {
     color: rgba(226, 232, 240, 0.5) !important;
   }
 }
@@ -156,7 +199,7 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .gradient-heading {
     @apply bg-clip-text text-transparent;
     background-image: var(--theme-gradient);
@@ -169,13 +212,13 @@
   .card-glow {
     @apply relative;
   }
-  
+
   .card-glow::before {
-    content: "";
+    content: '';
     @apply absolute -inset-0.5 rounded-lg opacity-0 transition duration-300 blur-xl;
     background-image: var(--theme-gradient);
   }
-  
+
   .card-glow:hover::before {
     @apply opacity-75;
   }
@@ -185,8 +228,15 @@
   }
 
   @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.8; }
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
   }
 
   /* Performance optimizations for scrolling */
@@ -199,8 +249,13 @@
   }
 
   @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .nft-wiggle {
@@ -208,13 +263,22 @@
   }
 
   @keyframes wiggle {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(5deg); }
-    75% { transform: rotate(-5deg); }
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(5deg);
+    }
+    75% {
+      transform: rotate(-5deg);
+    }
   }
 
   .button-pop {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .button-pop:hover {
@@ -230,7 +294,10 @@
     position: relative;
     display: inline-block;
     animation: colorShift 4s ease-in-out infinite;
-    text-shadow: 0 0 8px rgba(255, 105, 180, 0.7), 0 0 15px rgba(0, 255, 136, 0.5), 0 0 25px rgba(255, 206, 228, 0.3);
+    text-shadow:
+      0 0 8px rgba(255, 105, 180, 0.7),
+      0 0 15px rgba(0, 255, 136, 0.5),
+      0 0 25px rgba(255, 206, 228, 0.3);
   }
 
   .doodle-heading::before {
@@ -248,21 +315,47 @@
   }
 
   @keyframes colorShift {
-    0% { color: #ff69b4; text-shadow: 0 0 8px rgba(255, 105, 180, 0.7), 0 0 15px rgba(0, 255, 136, 0.5), 0 0 25px rgba(255, 206, 228, 0.3); }
-    50% { color: #00ff88; text-shadow: 0 0 8px rgba(0, 255, 136, 0.7), 0 0 15px rgba(255, 105, 180, 0.5), 0 0 25px rgba(182, 255, 192, 0.3); }
-    100% { color: #ff69b4; text-shadow: 0 0 8px rgba(255, 105, 180, 0.7), 0 0 15px rgba(0, 255, 136, 0.5), 0 0 25px rgba(255, 206, 228, 0.3); }
+    0% {
+      color: #ff69b4;
+      text-shadow:
+        0 0 8px rgba(255, 105, 180, 0.7),
+        0 0 15px rgba(0, 255, 136, 0.5),
+        0 0 25px rgba(255, 206, 228, 0.3);
+    }
+    50% {
+      color: #00ff88;
+      text-shadow:
+        0 0 8px rgba(0, 255, 136, 0.7),
+        0 0 15px rgba(255, 105, 180, 0.5),
+        0 0 25px rgba(182, 255, 192, 0.3);
+    }
+    100% {
+      color: #ff69b4;
+      text-shadow:
+        0 0 8px rgba(255, 105, 180, 0.7),
+        0 0 15px rgba(0, 255, 136, 0.5),
+        0 0 25px rgba(255, 206, 228, 0.3);
+    }
   }
 
   @keyframes wiggleDoodle {
-    0%, 100% { transform: rotate(3deg); }
-    50% { transform: rotate(-3deg); }
+    0%,
+    100% {
+      transform: rotate(3deg);
+    }
+    50% {
+      transform: rotate(-3deg);
+    }
   }
 
   .nft-button {
     background-color: #ff69b4; /* Hot pink */
     color: white;
     border: none;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      background-color 0.3s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .nft-button:hover {
@@ -302,15 +395,22 @@
   }
 
   @keyframes accentPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 
   .gradient-border {
     position: relative;
     border: none;
     background: linear-gradient(45deg, #ff69b4, #00ff88) border-box;
-    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) padding-box,
+      linear-gradient(#fff 0 0);
     -webkit-mask-composite: destination-out;
     mask-composite: exclude;
     padding: 1px;
@@ -322,7 +422,9 @@
     inset: 0;
     border-radius: inherit;
     background: linear-gradient(45deg, #ff69b4, #00ff88);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     -webkit-mask-composite: destination-out;
     mask-composite: exclude;
     padding: 1px;
@@ -331,8 +433,13 @@
   }
 
   @keyframes borderGlow {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   .playful-text {
@@ -342,8 +449,13 @@
   }
 
   @keyframes playfulBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
 
   .colorful-bg {
@@ -353,22 +465,34 @@
   }
 
   @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   .colorful-card {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 0 10px rgba(255, 105, 180, 0.3);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.1),
+      0 0 10px rgba(255, 105, 180, 0.3);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .colorful-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 255, 136, 0.4);
+    box-shadow:
+      0 6px 12px rgba(0, 0, 0, 0.15),
+      0 0 15px rgba(0, 255, 136, 0.4);
   }
 
   .doodle-wiggle {
@@ -376,13 +500,22 @@
   }
 
   @keyframes doodleWiggle {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(8deg); }
-    75% { transform: rotate(-8deg); }
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(8deg);
+    }
+    75% {
+      transform: rotate(-8deg);
+    }
   }
 
   .comic-pop {
-    transition: transform 0.2s ease, filter 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      filter 0.2s ease;
   }
 
   .comic-pop:hover {
@@ -434,4 +567,54 @@
   100% {
     background-position: 0% 50%;
   }
+}
+
+/* Generic animated button styles with tilted hover effect - Smooth but immediate */
+.btn-animated {
+  transition: all 0.2s ease-out;
+  transform: translateZ(0); /* Enable hardware acceleration */
+}
+
+.btn-animated:hover {
+  transform: translateY(-3px) scale(1.05) rotate(-1deg);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.btn-animated:active {
+  transform: translateY(0) scale(0.98) rotate(0deg);
+  transition: all 0.1s ease-out;
+}
+
+/* Enhanced version with more dynamic tilted animation - Smooth but immediate */
+.btn-spring {
+  transition: all 0.15s ease-out;
+  transform: translateZ(0);
+}
+
+.btn-spring:hover {
+  transform: translateY(-4px) scale(1.08) rotate(1deg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.1);
+}
+
+.btn-spring:active {
+  transform: translateY(-1px) scale(0.96) rotate(0deg);
+  transition: all 0.08s ease-out;
+}
+
+/* Comic-style pop animation for special buttons - Smooth but immediate */
+.btn-comic {
+  transition: all 0.18s ease-out;
+  transform: translateZ(0);
+}
+
+.btn-comic:hover {
+  transform: translateY(-5px) scale(1.1) rotate(-2deg);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.15) saturate(1.2);
+}
+
+.btn-comic:active {
+  transform: translateY(-2px) scale(0.95) rotate(1deg);
+  transition: all 0.1s ease-out;
 }

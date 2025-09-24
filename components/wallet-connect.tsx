@@ -54,7 +54,6 @@ export default function WalletConnect() {
   } = useWeb3();
 
   const { toast } = useToast();
-  const [showDropdown, setShowDropdown] = useState(false);
   const [copyTooltip, setCopyTooltip] = useState('Click to copy');
 
   /**
@@ -116,7 +115,7 @@ export default function WalletConnect() {
       <Button
         onClick={connectWallet}
         disabled={connecting}
-        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl border-0 backdrop-blur-sm"
+        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-lg border-0 backdrop-blur-sm btn-spring"
       >
         {connecting ? (
           <>
@@ -135,127 +134,105 @@ export default function WalletConnect() {
 
   // Show connected wallet interface
   return (
-    <div className="relative">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setShowDropdown(!showDropdown)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  setShowDropdown(!showDropdown);
-                }
-              }}
-              className="flex items-center gap-3 px-4 py-2 rounded-lg bg-slate-900/80 border border-emerald-500/30 text-white hover:bg-slate-800/80 hover:border-emerald-400/50 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/20 transition-all duration-300 backdrop-blur-sm"
-              aria-haspopup="true"
-              aria-expanded={showDropdown ? 'true' : 'false'}
-            >
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
-                <span className="text-emerald-300 text-xs font-medium">
-                  {networkName || 'Ethereum'}
-                </span>
-              </div>
-              <div className="h-4 w-px bg-slate-600" />
-              <span className="text-white font-mono">
-                {ensName || formatAddress(account)}
-              </span>
-              <ChevronDown className="h-4 w-4 text-slate-400" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Connected to {networkName || 'Ethereum'}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* Dropdown Menu */}
-      <DropdownMenu open={showDropdown} onOpenChange={setShowDropdown}>
-        <DropdownMenuTrigger className="sr-only" aria-hidden="true">
-          Open menu
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          side="bottom"
-          sideOffset={4}
-          className="w-72 bg-slate-900/95 border-slate-700/50 backdrop-blur-lg"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-3 px-4 py-2 h-auto rounded-lg bg-slate-900/80 border border-emerald-500/30 text-white hover:bg-slate-800/80 hover:border-emerald-400/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400/20 backdrop-blur-sm transition-all duration-300"
         >
-          {/* Account Info */}
-          <div className="px-4 py-3 border-b border-slate-700/50">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 ring-2 ring-emerald-500/30">
-                <AvatarImage
-                  src={`https://api.dicebear.com/7.x/identicon/svg?seed=${account}`}
-                />
-                <AvatarFallback className="bg-slate-800 text-emerald-400 font-bold">
-                  {account?.slice(2, 4).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate text-white font-mono">
-                  {ensName || formatAddress(account)}
-                </p>
-                <p className="text-xs text-emerald-400 font-medium">
-                  {balance} {chainId === 10143 ? 'MON' : 'ETH'}
-                </p>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+            <span className="text-emerald-300 text-xs font-medium">
+              {networkName || 'Ethereum'}
+            </span>
+          </div>
+          <div className="h-4 w-px bg-slate-600" />
+          <span className="text-white font-mono">
+            {ensName || formatAddress(account)}
+          </span>
+          <ChevronDown className="h-4 w-4 text-slate-400" />
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        side="bottom"
+        sideOffset={8}
+        className="w-72 bg-slate-900/95 border-slate-700/50 backdrop-blur-lg"
+      >
+        {/* Account Info */}
+        <div className="px-4 py-3 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 ring-2 ring-emerald-500/30">
+              <AvatarImage
+                src={`https://api.dicebear.com/7.x/identicon/svg?seed=${account}`}
+              />
+              <AvatarFallback className="bg-slate-800 text-emerald-400 font-bold">
+                {account?.slice(2, 4).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate text-white font-mono">
+                {ensName || formatAddress(account)}
+              </p>
+              <p className="text-xs text-emerald-400 font-medium">
+                {balance} {chainId === 10143 ? 'MON' : 'ETH'}
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Network Info */}
-          <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-slate-300">Network</span>
-              </div>
-              <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">
-                {networkName || 'Ethereum'}
-              </span>
+        {/* Network Info */}
+        <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs text-slate-300">Network</span>
             </div>
+            <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">
+              {networkName || 'Ethereum'}
+            </span>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="p-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuItem
-                    onClick={copyAddressToClipboard}
-                    className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
-                  >
-                    <Copy className="mr-3 h-4 w-4 text-slate-400" />
-                    Copy Address
-                  </DropdownMenuItem>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{copyTooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        {/* Actions */}
+        <div className="p-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuItem
+                  onClick={copyAddressToClipboard}
+                  className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
+                >
+                  <Copy className="mr-3 h-4 w-4 text-slate-400" />
+                  Copy Address
+                </DropdownMenuItem>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{copyTooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-            <DropdownMenuItem
-              onClick={viewOnExplorer}
-              className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
-            >
-              <ExternalLink className="mr-3 h-4 w-4 text-slate-400" />
-              View on Explorer
-            </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={viewOnExplorer}
+            className="text-slate-300 hover:text-white hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
+          >
+            <ExternalLink className="mr-3 h-4 w-4 text-slate-400" />
+            View on Explorer
+          </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="bg-slate-700/50 my-2" />
+          <DropdownMenuSeparator className="bg-slate-700/50 my-2" />
 
-            <DropdownMenuItem
-              onClick={disconnectWallet}
-              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors duration-200"
-            >
-              <AlertCircle className="mr-3 h-4 w-4" />
-              Disconnect Wallet
-            </DropdownMenuItem>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+          <DropdownMenuItem
+            onClick={disconnectWallet}
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors duration-200"
+          >
+            <AlertCircle className="mr-3 h-4 w-4" />
+            Disconnect Wallet
+          </DropdownMenuItem>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

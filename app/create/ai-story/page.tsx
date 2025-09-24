@@ -160,8 +160,9 @@ function AIStoryContent() {
             ✨ Mythic Tale Forge ✨
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            Harness the ancient powers of AI to weave legendary tales that transcend reality. 
-            Each story becomes an immortal artifact, forever preserved in the mystical realm of blockchain.
+            Harness the ancient powers of AI to weave legendary tales that
+            transcend reality. Each story becomes an immortal artifact, forever
+            preserved in the mystical realm of blockchain.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12">
@@ -169,9 +170,12 @@ function AIStoryContent() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
                 <Sparkles className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-lg text-orange-600 mb-2">🔮 Conjure</h3>
+              <h3 className="font-bold text-lg text-orange-600 mb-2">
+                🔮 Conjure
+              </h3>
               <p className="text-sm text-muted-foreground text-center">
-                Channel mystical AI forces to birth legendary narratives from pure imagination
+                Channel mystical AI forces to birth legendary narratives from
+                pure imagination
               </p>
             </div>
 
@@ -179,9 +183,12 @@ function AIStoryContent() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
                 <BookText className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-lg text-red-600 mb-2">✨ Enchant</h3>
+              <h3 className="font-bold text-lg text-red-600 mb-2">
+                ✨ Enchant
+              </h3>
               <p className="text-sm text-muted-foreground text-center">
-                Weave visual magic into your tales with AI-conjured illustrations
+                Weave visual magic into your tales with AI-conjured
+                illustrations
               </p>
             </div>
 
@@ -189,7 +196,9 @@ function AIStoryContent() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
                 <Wallet className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-lg text-pink-600 mb-2">🏛️ Immortalize</h3>
+              <h3 className="font-bold text-lg text-pink-600 mb-2">
+                🏛️ Immortalize
+              </h3>
               <p className="text-sm text-muted-foreground text-center">
                 Etch your masterpiece into the eternal blockchain archives
               </p>
@@ -199,19 +208,18 @@ function AIStoryContent() {
           <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-12">
             <Button
               size="lg"
-              className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+              className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl btn-comic"
               onClick={() => {
                 // Direct navigation with URL parameters
                 window.location.href = `/create/ai-story?source=homepage&format=free`;
               }}
             >
-              <Wand2 className="mr-2 h-5 w-5" />
-              ✨ Begin Forging ✨
+              <Wand2 className="mr-2 h-5 w-5" />✨ Begin Forging ✨
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:border-orange-500 transition-all duration-300"
+              className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:border-orange-500 btn-spring"
               asChild
             >
               <Link href="/stories">
@@ -231,17 +239,24 @@ function AIStoryContent() {
           </h2>
           <div className="space-y-6 text-muted-foreground leading-relaxed">
             <p className="text-lg">
-              🔮 <strong>The Mythic Tale Forge</strong> channels primordial AI energies to birth legendary narratives from the depths of imagination. 
-              Each tale is woven with mystical threads and can be immortalized as sacred NFT artifacts on the eternal Monad blockchain.
+              🔮 <strong>The Mythic Tale Forge</strong> channels primordial AI
+              energies to birth legendary narratives from the depths of
+              imagination. Each tale is woven with mystical threads and can be
+              immortalized as sacred NFT artifacts on the eternal Monad
+              blockchain.
             </p>
             <p>
-              ✨ <strong>The Forging Process:</strong> Whisper your vision into the ethereal realm, choose your mystical parameters, 
-              and watch as ancient AI spirits craft your legend. Your tale can then be crystallized into an immortal NFT, 
-              creating an unbreakable bond between creator and creation across the blockchain dimensions.
+              ✨ <strong>The Forging Process:</strong> Whisper your vision into
+              the ethereal realm, choose your mystical parameters, and watch as
+              ancient AI spirits craft your legend. Your tale can then be
+              crystallized into an immortal NFT, creating an unbreakable bond
+              between creator and creation across the blockchain dimensions.
             </p>
             <p>
-              🏛️ <strong>Sacred Requirements:</strong> To perform the immortalization ritual, you must connect your mystical Web3 conduit 
-              and ensure it resonates with the Monad network's frequencies. Only then can your tale transcend the mortal realm.
+              🏛️ <strong>Sacred Requirements:</strong> To perform the
+              immortalization ritual, you must connect your mystical Web3
+              conduit and ensure it resonates with the Monad network's
+              frequencies. Only then can your tale transcend the mortal realm.
             </p>
           </div>
         </div>

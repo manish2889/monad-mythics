@@ -47,7 +47,7 @@ export default function Home() {
                   <Link href="/create/ai-story">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/20 min-w-[160px]"
+                      className="bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/20 min-w-[160px] btn-comic"
                     >
                       <PenSquare className="mr-2 h-5 w-5" />
                       Create Story
@@ -59,7 +59,7 @@ export default function Home() {
                       onClick={connectWallet}
                       variant="outline"
                       size="lg"
-                      className="border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20 min-w-[160px]"
+                      className="border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20 min-w-[160px] btn-spring"
                     >
                       <Wallet className="mr-2 h-5 w-5" />
                       Connect Wallet
@@ -68,7 +68,7 @@ export default function Home() {
                     <Link href="/nft-gallery">
                       <Button
                         size="lg"
-                        className="bg-gradient-to-r from-pink-600 to-purple-500 shadow-lg shadow-pink-500/20 min-w-[160px]"
+                        className="bg-gradient-to-r from-pink-600 to-purple-500 shadow-lg shadow-pink-500/20 min-w-[160px] btn-comic"
                       >
                         <Sparkles className="mr-2 h-5 w-5" />
                         Browse NFTs
@@ -157,7 +157,7 @@ export default function Home() {
               <Link href="/nft-gallery">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-orange-600 to-red-600"
+                  className="bg-gradient-to-r from-orange-600 to-red-600 btn-spring"
                 >
                   Explore All Tales
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -239,7 +239,7 @@ export default function Home() {
               <Link href="/create/ai-story">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-red-500 to-pink-500"
+                  className="bg-gradient-to-r from-red-500 to-pink-500 btn-comic"
                 >
                   Start Creating
                 </Button>
@@ -265,14 +265,14 @@ export default function Home() {
                 <Link href="/create/ai-story">
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-orange-500 to-red-500"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 btn-comic"
                   >
                     Get Started Now
                   </Button>
                 </Link>
 
                 <Link href="/about">
-                  <Button variant="outline" size="lg">
+                  <Button variant="outline" size="lg" className="btn-spring">
                     Learn More
                   </Button>
                 </Link>

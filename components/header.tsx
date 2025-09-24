@@ -1,12 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {
-  PenSquare,
-  BookOpen,
-  FlaskConical,
-  ChevronDown,
-} from 'lucide-react';
+import { PenSquare, BookOpen, FlaskConical, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
@@ -195,7 +190,7 @@ export function Header() {
           <Button
             variant="outline"
             size="sm"
-            className="hidden md:flex bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 backdrop-blur-sm comic-pop comic-text-bold border-orange-500/20"
+            className="hidden md:flex bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 backdrop-blur-sm comic-text-bold border-orange-500/20 btn-spring"
             onClick={handleCreateClick}
           >
             <PenSquare className="h-4 w-4 mr-2" />
