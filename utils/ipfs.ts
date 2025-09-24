@@ -11,10 +11,12 @@ const PINATA_API_SECRET = process.env.PINATA_API_SECRET;
 
 // IPFS Gateway URLs for accessing content
 const IPFS_GATEWAYS = [
-  'https://gateway.pinata.cloud/ipfs/',
+  // Prefer public gateways that generally set permissive CORS
   'https://ipfs.io/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/',
   'https://dweb.link/ipfs/',
+  // Pinata gateway as a later fallback due to stricter CORS/429 limits
+  'https://gateway.pinata.cloud/ipfs/',
 ];
 
 /**
@@ -30,11 +32,34 @@ export const uploadToIPFS = async (
   if (process.env.NODE_ENV === 'development')
     console.log('Uploading to IPFS:', typeof file, metadata);
 
-  // If we don't have API keys, use mock implementation for development
+  // Always use our server route on the client to keep secrets server-side
+  if (typeof window !== 'undefined') {
+    try {
+      const isJson = typeof file === 'object' && !(file instanceof File) && !(file instanceof Blob);
+      const res = await fetch('/api/ipfs/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: isJson ? 'json' : 'text',
+          content: isJson ? file : String(file),
+          metadata,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`IPFS API failed with status ${res.status}`);
+      }
+      const data = await res.json();
+      if (data && data.cid) return data.cid as string;
+      throw new Error('Invalid response from IPFS API');
+    } catch (apiErr: any) {
+      console.error('IPFS upload via API route failed:', apiErr);
+      throw new Error(apiErr?.message || 'IPFS upload failed');
+    }
+  }
+
+  // Server-side: if keys missing, mock; else upload directly to Pinata
   if (!PINATA_API_KEY || !PINATA_API_SECRET) {
-    console.warn(
-      'Using mock IPFS upload as Pinata API credentials are not set'
-    );
+    console.warn('Using mock IPFS upload as Pinata credentials are not set on server');
     return mockUploadToIPFS(file, metadata);
   }
 

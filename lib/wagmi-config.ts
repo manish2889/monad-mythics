@@ -2,11 +2,10 @@
 
 import { http, createConfig } from 'wagmi';
 import { mainnet, sepolia, polygon, polygonMumbai, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia } from 'wagmi/chains';
-import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
-import { defineChain } from 'viem';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
+import { defineChain, fallback } from 'viem';
 
-// Get project ID from environment variables
-const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'your-project-id';
+// WalletConnect removed to avoid unexpected QR modal
 
 // Define Monad Testnet chain
 export const monadTestnet = defineChain({
@@ -19,7 +18,10 @@ export const monadTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://testnet-rpc.monad.xyz/'],
+      http: [
+        'https://testnet-rpc.monad.xyz/',
+        'https://monad-testnet.g.alchemy.com/v2/hXhQfjPGOQhoXyl3yAd0jfL88WodwAnf', // Backup RPC for rate limiting
+      ],
     },
   },
   blockExplorers: {
@@ -49,19 +51,21 @@ export const wagmiConfig = createConfig({
       appName: 'GroqTales',
       appLogoUrl: '/logo.png',
     }),
-    // WalletConnect
-    walletConnect({
-      projectId,
-      metadata: {
-        name: 'GroqTales',
-        description: 'AI-Generated Story NFTs',
-        url: process.env.NEXT_PUBLIC_URL || 'https://groqtales.com',
-        icons: ['/logo.png'],
-      },
-    }),
   ],
   transports: {
-    [monadTestnet.id]: http(),
+    // Try Alchemy first, then public endpoint with fallback & retries
+    [monadTestnet.id]: fallback([
+      http(monadTestnet.rpcUrls.default.http[1] || monadTestnet.rpcUrls.default.http[0], {
+        retryCount: 3,
+        retryDelay: 400,
+        timeout: 15000,
+      }),
+      http(monadTestnet.rpcUrls.default.http[0], {
+        retryCount: 3,
+        retryDelay: 400,
+        timeout: 15000,
+      }),
+    ]),
   },
 });
 

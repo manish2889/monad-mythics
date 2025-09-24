@@ -157,10 +157,18 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
 
   const connectWallet = async () => {
     try {
-      // Try to connect with the first available connector (usually MetaMask)
-      const connector = connectors.find(c => c.name.toLowerCase().includes('metamask')) || connectors[0];
-      if (connector) {
-        await connect({ connector, chainId: 10143 }); // Force connection to Monad Testnet
+      // If already connected, don't try to connect again
+      if (isConnected && address) {
+        console.log('Wallet already connected:', address);
+        return;
+      }
+
+      // Prefer MetaMask (injected) over WalletConnect to avoid modal issues
+      const injectedConnector = connectors.find(c => c.name.toLowerCase().includes('injected') || c.name.toLowerCase().includes('metamask'));
+      const preferredConnector = injectedConnector || connectors[0];
+      
+      if (preferredConnector) {
+        await connect({ connector: preferredConnector, chainId: 10143 }); // Force connection to Monad Testnet
       } else {
         throw new Error('No wallet connectors available');
       }
@@ -197,27 +205,78 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
     if (!isConnected || !address) {
       throw new Error('Wallet not connected');
     }
-    // TODO: Implement actual Monad NFT minting logic
-    console.log('Minting NFT on Monad:', { metadata, recipient });
-    throw new Error('NFT minting not yet implemented - requires contract integration');
+    
+    try {
+      // Import the contract utilities
+      const { MonadStoryNFTWriter } = await import('@/lib/contracts/monadStoryNFT');
+      
+      // Extract story metadata
+      const { storyHash, metadataURI, imageCount } = metadata;
+      
+      // Mint the story NFT
+      const result = await MonadStoryNFTWriter.mintStory(
+        storyHash,
+        metadataURI,
+        imageCount || 0
+      );
+      
+      console.log('Story NFT minted successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error minting story NFT on Monad:', error);
+      throw error;
+    }
   };
 
   const transferNFT = async (tokenId: string, to: string) => {
     if (!isConnected || !address) {
       throw new Error('Wallet not connected');
     }
-    // TODO: Implement actual NFT transfer logic
-    console.log('Transferring NFT:', { tokenId, to });
-    throw new Error('NFT transfer not yet implemented - requires contract integration');
+    
+    try {
+      // Import the contract utilities
+      const { MonadStoryNFTWriter } = await import('@/lib/contracts/monadStoryNFT');
+      
+      // Transfer the NFT
+      const txHash = await MonadStoryNFTWriter.transferFrom(
+        address,
+        to,
+        parseInt(tokenId)
+      );
+      
+      console.log('NFT transferred successfully:', txHash);
+      return txHash;
+    } catch (error) {
+      console.error('Error transferring NFT:', error);
+      throw error;
+    }
   };
 
   const getUserNFTs = async () => {
     if (!isConnected || !address) {
       return [];
     }
-    // TODO: Implement actual NFT fetching logic
-    console.log('Fetching user NFTs for:', address);
-    return [];
+    
+    try {
+      // Import the contract utilities
+      const { MonadStoryNFTReader } = await import('@/lib/contracts/monadStoryNFT');
+      
+      // Get user's NFT balance
+      const balance = await MonadStoryNFTReader.getBalanceOf(address);
+      
+      // For now, return basic info - you'd need to implement token enumeration
+      // or use event logs to get actual token IDs owned by the user
+      console.log(`User owns ${balance} Story NFTs`);
+      
+      // This is a placeholder - in a real implementation, you'd:
+      // 1. Use event logs to find Transfer events to this address
+      // 2. Or implement a token enumeration system
+      // 3. Or use a subgraph/indexer service
+      return [];
+    } catch (error) {
+      console.error('Error fetching user NFTs:', error);
+      return [];
+    }
   };
 
   const getMarketplaceNFTs = async () => {

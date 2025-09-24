@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
+  User,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
@@ -23,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { uploadToIPFS, getIPFSUrl } from '@/utils/ipfs';
 
 interface AIStoryGeneratorProps {
   className?: string;
@@ -104,6 +106,7 @@ export default function AIStoryGenerator({
   const [storyFormat, setStoryFormat] = useState('short');
   const [title, setTitle] = useState('');
   const [mainCharacters, setMainCharacters] = useState('');
+  const [author, setAuthor] = useState('');
   const [plotOutline, setPlotOutline] = useState('');
   const [setting, setSetting] = useState('');
   const [themes, setThemes] = useState('');
@@ -117,7 +120,7 @@ export default function AIStoryGenerator({
   const [includeImages, setIncludeImages] = useState(true);
 
   const { toast } = useToast();
-  const { account, connected, connectWallet } = useWeb3();
+  const { account, connected, connectWallet, mintNFTOnMonad } = useWeb3();
 
   const handleGenreToggle = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -291,14 +294,39 @@ This generated story demonstrates the power of AI-assisted creative writing, com
       return;
     }
 
+    // Validate required fields for minting
+    if (!author.trim()) {
+      toast({
+        title: 'Author Required',
+        description: 'Please enter the author name before minting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedGenres.length === 0) {
+      toast({
+        title: 'Genre Required',
+        description: 'Please select at least one genre before minting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsMinting(true);
     try {
-      // Prepare NFT metadata with both text and images
+      // First upload the story content to IPFS (Pinata)
+      const storyCid = await uploadToIPFS(generatedContent, {
+        name: (title || 'Monad Mythics Story') + ' - Story Content',
+      });
+      const storyIpfsUri = `ipfs://${storyCid}`;
+
+      // Create NFT metadata JSON
       const nftMetadata = {
         name: title || 'Monad Mythics Story',
         description: `AI-generated story: ${prompt.substring(0, 100)}...`,
-        story_content: generatedContent,
-        images: generatedImages,
+        image: generatedImages.length > 0 ? generatedImages[0]?.url : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
+        images: generatedImages.map(img => ({ url: img.url, chapter: img.chapter, description: img.description })),
         attributes: [
           {
             trait_type: 'Genre',
@@ -320,11 +348,45 @@ This generated story demonstrates the power of AI-assisted creative writing, com
         creator: account,
       };
 
-      // Simulate NFT minting process with combined content
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Upload metadata JSON to IPFS and use ipfs:// URI
+      const metadataCid = await uploadToIPFS(nftMetadata, {
+        name: (title || 'Monad Mythics Story') + ' - Metadata',
+      });
+      const metadataURI = `ipfs://${metadataCid}`;
 
-      const mockNftUrl = `https://opensea.io/assets/monad/0x123.../1`;
-      setMintedNftUrl(mockNftUrl);
+      // Prepare the metadata in the format expected by the Web3 provider
+      const contractMetadata = {
+        storyHash: storyIpfsUri,
+        metadataURI,
+        imageCount: generatedImages.length,
+      };
+
+      console.log('Minting NFT with contract metadata:', contractMetadata);
+
+      // Use the real Web3 provider to mint the NFT
+      const result = await mintNFTOnMonad(contractMetadata);
+      
+      console.log('NFT minted successfully:', result);
+
+      // Create the gallery URL to view the minted NFT
+      const nftUrl = `/gallery?highlight=${result.tokenId}`;
+      setMintedNftUrl(nftUrl);
+
+      // Cache locally for gallery fallback
+      try {
+        const cacheKey = `story_nft_${result.tokenId}`;
+        const cachePayload = {
+          tokenId: result.tokenId,
+          metadata: nftMetadata,
+          storyContent: generatedContent,
+          images: generatedImages,
+          createdAt: new Date().toISOString(),
+          source: 'local-cache',
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
+      } catch (e) {
+        console.warn('Failed to cache NFT locally:', e);
+      }
 
       toast({
         title: 'NFT Minted Successfully!',
@@ -333,10 +395,11 @@ This generated story demonstrates the power of AI-assisted creative writing, com
             ? `Your story with ${generatedImages.length} images has been minted as an NFT on Monad blockchain.`
             : 'Your story has been minted as an NFT on Monad blockchain.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Minting error:', error);
       toast({
         title: 'Minting Failed',
-        description: 'Failed to mint NFT. Please try again.',
+        description: error.message || 'Failed to mint NFT. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -348,6 +411,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
     setPrompt('');
     setTitle('');
     setMainCharacters('');
+    setAuthor('');
     setPlotOutline('');
     setSetting('');
     setThemes('');
@@ -425,6 +489,18 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block flex items-center">
+                      <User className="h-4 w-4 mr-2 text-green-500" />
+                      Author Name *
+                    </label>
+                    <Input
+                      placeholder="Who created this masterpiece? (Required for minting)"
+                      value={author}
+                      onChange={(e) => setAuthor(e.target.value)}
+                      className="bg-slate-900/80 border-green-500/30 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 text-white placeholder:text-slate-400 transition-all duration-300 backdrop-blur-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block flex items-center">
                       <MapPin className="h-4 w-4 mr-2 text-pink-500" />
                       Realm & Domain
                     </label>
@@ -453,7 +529,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                 <div>
                   <label className="text-sm font-medium mb-2 block flex items-center">
                     <Wand2 className="h-4 w-4 mr-2 text-blue-500" />
-                    Tale Archetypes
+                    Tale Archetypes *
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {genres.map((genre) => (
@@ -474,7 +550,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    ✨ Choose the mystical forces that will shape your narrative
+                    ✨ Choose the mystical forces that will shape your narrative (Required for minting)
                   </p>
                 </div>
 
@@ -709,6 +785,9 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                           <strong>Title:</strong> {title || 'Untitled Story'}
                         </p>
                         <p>
+                          <strong>Author:</strong> {author || 'Not specified'}
+                        </p>
+                        <p>
                           <strong>Genres:</strong>{' '}
                           {selectedGenres.join(', ') || 'None selected'}
                         </p>
@@ -776,10 +855,8 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                       <Button asChild>
                         <a
                           href={mintedNftUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
                         >
-                          View on OpenSea
+                          View in Gallery
                         </a>
                       </Button>
                     </div>
