@@ -187,15 +187,19 @@ export function Header() {
 
         <div className="flex items-center space-x-3">
           <WalletConnect />
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden md:flex bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 backdrop-blur-sm comic-text-bold border-orange-500/20 btn-spring"
-            onClick={handleCreateClick}
-          >
-            <PenSquare className="h-4 w-4 mr-2" />
-            Create
-          </Button>
+          {pathname !== '/create/ai-story' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 backdrop-blur-sm comic-text-bold border-orange-500/20 btn-spring"
+              asChild
+            >
+              <Link href="/create/ai-story">
+                <PenSquare className="h-4 w-4 mr-2" />
+                Create
+              </Link>
+            </Button>
+          )}
           <UserNav />
         </div>
       </div>
