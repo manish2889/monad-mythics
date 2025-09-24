@@ -173,23 +173,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## Contributors
-
-We value every contribution! Please read our [CONTRIBUTORS.md](CONTRIBUTORS.md) file before making
-your first contribution to understand our guidelines and recognition process.
-
-### Project Contributors
-
-<!-- markdownlint-disable MD033 -->
-<p align="center">
-  <a href="https://github.com/Drago-03/GroqTales/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Drago-03/GroqTales" alt="Contributors" />
-  </a>
-</p>
-
-Thanks to these amazing people for making GroqTales better!
-
----
 
 ## Documentation & Architecture
 
@@ -219,15 +202,6 @@ Thanks to these amazing people for making GroqTales better!
 - **System Diagrams:** [ARCHITECTURE.md#diagrams](docs/ARCHITECTURE.md#system-diagrams) - Mermaid
   flowcharts and architecture diagrams
 
-### Development Resources
-
-- **Setup Guide:**
-  [Wiki/Development-Setup](https://github.com/Drago-03/GroqTales/wiki/Development-Setup)
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute to the project
-- **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
-- **Security Policy:** [SECURITY.md](SECURITY.md) - Security practices and vulnerability reporting
-
----
 
 ## Resources
 
