@@ -26,7 +26,7 @@ function selectCharacter(heroes: string[] = [], legends: string[] = []): string 
   if (allCharacters.length === 0) {
     return 'hero'; // fallback
   }
-  return allCharacters[0];
+  return allCharacters[0] || 'hero'; // Add fallback for TypeScript
 }
 
 async function tryGenerateWithModel(modelUrl: string, prompt: string, apiKey: string) {

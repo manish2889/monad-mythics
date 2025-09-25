@@ -134,6 +134,7 @@ const ChartTooltipContent = React.forwardRef<
         return null;
 }
       const [item] = payload;
+      if (!item) return null;
       const key = `${labelKey || item.dataKey || item.name || 'value'}`;
       const itemConfig = getPayloadConfigFromPayload(config, item, key);
       const value =
@@ -244,9 +245,8 @@ const ChartTooltipContent = React.forwardRef<
         </div>
       </div>
     );
-    }
-  );
-});
+  }
+);
 ChartTooltipContent.displayName = 'ChartTooltip';
 
 const ChartLegend = RechartsPrimitive.Legend;
@@ -304,9 +304,8 @@ const ChartLegendContent = React.forwardRef<
         })}
       </div>
     );
-    }
-  );
-});
+  }
+);
 ChartLegendContent.displayName = 'ChartLegend';
 
 // Helper to extract item config from a payload.

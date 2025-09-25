@@ -888,7 +888,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                                 </p>
                                 {sourceFileIpfsHash && (
                                   <p className="text-xs text-green-400 mt-1">
-                                    📦 IPFS: {sourceFileIpfsHash.substring(0, 10)}...{sourceFileIpfsHash.substring(-6)}
+                                    📦 IPFS: {sourceFileIpfsHash.substring(0, 10)}...{sourceFileIpfsHash.slice(-6)}
                                   </p>
                                 )}
                               </div>

@@ -1,11 +1,9 @@
 'use client';
-import CoinbaseWalletSDK from '@coinbase/wallet-sdk';
-import { ethers } from 'ethers';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { base } from 'viem/chains';
 
 import { useToast } from '@/components/ui/use-toast';
-import { uploadToIPFS, getIPFSUrl, getIPFSFallbackUrls } from '@/utils/ipfs';
 
 // Import Coinbase AgentKit and related modules
 // Removed problematic import for OnchainKit due to linter errors
@@ -17,18 +15,6 @@ import { uploadToIPFS, getIPFSUrl, getIPFSFallbackUrls } from '@/utils/ipfs';
 
 // Constants for Base network
 const BASE_CHAIN_ID = base.id;
-const BASE_RPC_URL =
-  process.env.NEXT_PUBLIC_COINBASE_MAINNET_RPC_ENDPOINT ||
-  'https://mainnet.base.org';
-
-// Initialize Coinbase Wallet SDK with environment variables
-const sdk = new CoinbaseWalletSDK({
-  appName: 'GroqTales',
-  appChainIds: [BASE_CHAIN_ID],
-});
-
-// Make web3 provider
-const coinbaseProvider = sdk.makeWeb3Provider();
 
 // Types
 interface NFT {
@@ -40,7 +26,7 @@ interface NFT {
   seller: string;
   owner: string;
   image: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   status: 'listed' | 'unlisted' | 'sold';
 }
 
@@ -56,14 +42,14 @@ interface Web3ContextType {
   ensName: string | null;
   switchNetwork: (chainId: number) => Promise<void>;
   mintNFTOnBase: (
-    metadata: any,
+    metadata: Record<string, unknown>,
     recipient?: string
   ) => Promise<{
     tokenId: string;
     transactionHash: string;
     metadata: {
       content: string;
-      [key: string]: any;
+      [key: string]: unknown;
     };
     ipfsHash: string;
     tokenURI: string;
@@ -170,7 +156,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Function to mint NFT on Base
-  const mintNFTOnBase = async (metadata: any, recipient?: string) => {
+  const mintNFTOnBase = async (
+    metadata: Record<string, unknown>,
+    _recipient?: string
+  ) => {
     try {
       // Mock implementation for demo
       const tokenId = Math.floor(Math.random() * 10000).toString();
@@ -179,15 +168,15 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       return {
         tokenId,
         transactionHash,
-        metadata: { content: metadata.content || '', ...metadata },
+        metadata: { content: (metadata.content as string) || '', ...metadata },
         ipfsHash: 'QmExample',
         tokenURI: 'https://ipfs.io/ipfs/QmExample',
         fallbackUrls: ['https://gateway.pinata.cloud/ipfs/QmExample'],
       };
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Minting Failed',
-        description: error.message || 'Failed to mint NFT',
+        description: (error as Error).message || 'Failed to mint NFT',
         variant: 'destructive',
       });
       throw error;
@@ -206,10 +195,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       });
 
       return { transactionHash, tokenId };
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Purchase Failed',
-        description: error.message || 'Failed to purchase NFT',
+        description: (error as Error).message || 'Failed to purchase NFT',
         variant: 'destructive',
       });
       throw error;
@@ -228,10 +217,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       });
 
       return { transactionHash };
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Listing Failed',
-        description: error.message || 'Failed to list NFT for sale',
+        description: (error as Error).message || 'Failed to list NFT for sale',
         variant: 'destructive',
       });
       throw error;
@@ -274,10 +263,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       }));
 
       return mockNFTs;
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Failed to Load NFTs',
-        description: error.message || 'Failed to fetch NFT listings',
+        description: (error as Error).message || 'Failed to fetch NFT listings',
         variant: 'destructive',
       });
       throw error;
@@ -325,7 +314,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
               name = null; // Would lookup actual ENS name here
             }
           } catch (error) {
-            console.error('ENS lookup failed:', error);
+            // ENS lookup failed - continue without ENS name
           }
         }
 
@@ -341,11 +330,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
           description: `Connected to ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`,
         });
       }
-    } catch (error: any) {
-      console.error('Error connecting wallet:', error);
+    } catch (error) {
       toast({
         title: 'Connection Failed',
-        description: error.message || 'Failed to connect wallet',
+        description: (error as Error).message || 'Failed to connect wallet',
         variant: 'destructive',
       });
     } finally {
@@ -368,7 +356,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
             connectWallet();
           }
         } catch (error) {
-          console.error('Error checking connection:', error);
+          // Error checking connection - continue without auto-connect
         }
       }
     };
@@ -412,7 +400,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         window.ethereum.removeListener('disconnect', handleDisconnect);
       }
     };
-  }, [account]);
+  }, [account, connectWallet, disconnectWallet]);
 
   // Mock data for demo purposes
   useEffect(() => {

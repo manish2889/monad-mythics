@@ -1,10 +1,18 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAccount, useBalance, useConnect, useDisconnect, useSwitchChain, useEnsName } from 'wagmi';
 import { formatEther } from 'viem';
+import {
+  WagmiProvider,
+  useAccount,
+  useBalance,
+  useConnect,
+  useDisconnect,
+  useSwitchChain,
+  useEnsName,
+} from 'wagmi';
+
 import { wagmiConfig } from '@/lib/wagmi-config';
 
 // Real Web3 Provider using wagmi
@@ -20,22 +28,22 @@ interface Web3ContextType {
   ensName: string | null;
   switchNetwork: (chainId: number) => Promise<void>;
   mintNFTOnBase: (
-    metadata: any,
+    metadata: Record<string, unknown>,
     recipient?: string
   ) => Promise<{
     tokenId: string;
     transactionHash: string;
   }>;
   mintNFTOnMonad: (
-    metadata: any,
+    metadata: Record<string, unknown>,
     recipient?: string
   ) => Promise<{
     tokenId: string;
     transactionHash: string;
   }>;
   transferNFT: (tokenId: string, to: string) => Promise<string>;
-  getUserNFTs: () => Promise<any[]>;
-  getMarketplaceNFTs: () => Promise<any[]>;
+  getUserNFTs: () => Promise<Record<string, unknown>[]>;
+  getMarketplaceNFTs: () => Promise<Record<string, unknown>[]>;
   sellNFT: (tokenId: string, price: string) => Promise<void>;
   buyNFT: (tokenId: string, price: string) => Promise<void>;
   cancelListing: (tokenId: string) => Promise<void>;
@@ -116,11 +124,10 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
   // Auto-switch to Monad Testnet when connected to wrong network
   useEffect(() => {
     if (isConnected && wagmiChainId && wagmiChainId !== 10143) {
-      console.log('Wrong network detected, switching to Monad Testnet...');
       try {
         switchChain({ chainId: 10143 });
-      } catch (error: any) {
-        console.error('Failed to switch to Monad Testnet:', error);
+      } catch (error) {
+        // Network switch failed - user will need to manually switch
       }
     }
   }, [isConnected, wagmiChainId, switchChain]);
@@ -159,12 +166,15 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
     try {
       // If already connected, don't try to connect again
       if (isConnected && address) {
-        console.log('Wallet already connected:', address);
         return;
       }
 
       // Prefer MetaMask (injected) over WalletConnect to avoid modal issues
-      const injectedConnector = connectors.find(c => c.name.toLowerCase().includes('injected') || c.name.toLowerCase().includes('metamask'));
+      const injectedConnector = connectors.find(
+        (c) =>
+          c.name.toLowerCase().includes('injected') ||
+          c.name.toLowerCase().includes('metamask')
+      );
       const preferredConnector = injectedConnector || connectors[0];
       
       if (preferredConnector) {
@@ -173,7 +183,6 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
         throw new Error('No wallet connectors available');
       }
     } catch (error) {
-      console.error('Wallet connection failed:', error);
       throw error;
     }
   };
@@ -186,22 +195,26 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
     try {
       await switchChain({ chainId: targetChainId });
     } catch (error) {
-      console.error('Network switch failed:', error);
       throw error;
     }
   };
 
   // NFT and marketplace functions - these would need proper contract integration
-  const mintNFTOnBase = async (metadata: any, recipient?: string) => {
+  const mintNFTOnBase = async (
+    metadata: Record<string, unknown>,
+    _recipient?: string
+  ) => {
     if (!isConnected || !address) {
       throw new Error('Wallet not connected');
     }
     // TODO: Implement actual Base NFT minting logic
-    console.log('Minting NFT on Base:', { metadata, recipient });
     throw new Error('NFT minting not yet implemented - requires contract integration');
   };
 
-  const mintNFTOnMonad = async (metadata: any, recipient?: string) => {
+  const mintNFTOnMonad = async (
+    metadata: Record<string, unknown>,
+    _recipient?: string
+  ) => {
     if (!isConnected || !address) {
       throw new Error('Wallet not connected');
     }
@@ -211,19 +224,19 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       const { MonadStoryNFTWriter } = await import('@/lib/contracts/monadStoryNFT');
       
       // Extract story metadata
-      const { storyHash, metadataURI, imageCount } = metadata;
+      const storyHash = metadata.storyHash as string;
+      const metadataURI = metadata.metadataURI as string;
+      const imageCount = (metadata.imageCount as number) || 0;
       
       // Mint the story NFT
       const result = await MonadStoryNFTWriter.mintStory(
         storyHash,
         metadataURI,
-        imageCount || 0
+        imageCount
       );
       
-      console.log('Story NFT minted successfully:', result);
       return result;
     } catch (error) {
-      console.error('Error minting story NFT on Monad:', error);
       throw error;
     }
   };
@@ -244,10 +257,8 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
         parseInt(tokenId)
       );
       
-      console.log('NFT transferred successfully:', txHash);
       return txHash;
     } catch (error) {
-      console.error('Error transferring NFT:', error);
       throw error;
     }
   };
@@ -266,7 +277,6 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       
       // For now, return basic info - you'd need to implement token enumeration
       // or use event logs to get actual token IDs owned by the user
-      console.log(`User owns ${balance} Story NFTs`);
       
       // This is a placeholder - in a real implementation, you'd:
       // 1. Use event logs to find Transfer events to this address
@@ -274,14 +284,12 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       // 3. Or use a subgraph/indexer service
       return [];
     } catch (error) {
-      console.error('Error fetching user NFTs:', error);
       return [];
     }
   };
 
   const getMarketplaceNFTs = async () => {
     // TODO: Implement actual marketplace NFT fetching logic
-    console.log('Fetching marketplace NFTs');
     return [];
   };
 
@@ -290,7 +298,6 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       throw new Error('Wallet not connected');
     }
     // TODO: Implement actual NFT selling logic
-    console.log('Selling NFT:', { tokenId, price });
     throw new Error('NFT selling not yet implemented - requires contract integration');
   };
 
@@ -299,7 +306,6 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       throw new Error('Wallet not connected');
     }
     // TODO: Implement actual NFT buying logic
-    console.log('Buying NFT:', { tokenId, price });
     throw new Error('NFT buying not yet implemented - requires contract integration');
   };
 
@@ -308,7 +314,6 @@ function InternalWeb3Provider({ children }: { children: React.ReactNode }) {
       throw new Error('Wallet not connected');
     }
     // TODO: Implement actual listing cancellation logic
-    console.log('Cancelling NFT listing:', { tokenId });
     throw new Error('Listing cancellation not yet implemented - requires contract integration');
   };
 

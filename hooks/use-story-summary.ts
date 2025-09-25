@@ -29,7 +29,7 @@ interface UseStorySummaryResult {
 
   /**
    * Generate and store a summary for a story
-
+   */
   const generateSummary = async (
     storyId: string, 
     content: string, 
@@ -69,7 +69,7 @@ interface UseStorySummaryResult {
 
   /**
    * Fetch a summary for a story
-
+   */
   const fetchSummary = async (storyId: string): Promise<StorySummary | null> => {
     setIsLoading(true);
     setError(null);
@@ -96,7 +96,7 @@ interface UseStorySummaryResult {
 
   /**
    * Update a story summary
-
+   */
   const updateSummary = async (
     id: string, 
     updates: Partial<StorySummary>,
@@ -136,7 +136,7 @@ interface UseStorySummaryResult {
 
   /**
    * Delete a story summary
-
+   */
   const deleteSummary = async (id: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
