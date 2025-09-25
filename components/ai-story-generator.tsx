@@ -127,7 +127,9 @@ export default function AIStoryGenerator({
   const [fileContent, setFileContent] = useState<string>('');
   const [fileAnalysis, setFileAnalysis] = useState<any>(null);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [creationMode, setCreationMode] = useState<'manual' | 'upload'>('manual');
+  const [creationMode, setCreationMode] = useState<'manual' | 'upload'>(
+    'manual'
+  );
   const [sourceFileIpfsHash, setSourceFileIpfsHash] = useState<string>('');
   const [isUploadingToIpfs, setIsUploadingToIpfs] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,11 +162,12 @@ export default function AIStoryGenerator({
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    
+
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: 'Unsupported File Type',
-        description: 'Please upload a text file, markdown, PDF, or Word document.',
+        description:
+          'Please upload a text file, markdown, PDF, or Word document.',
         variant: 'destructive',
       });
       return;
@@ -184,12 +187,12 @@ export default function AIStoryGenerator({
         fileSize: file.size,
       });
       setSourceFileIpfsHash(ipfsHash);
-      
+
       toast({
         title: 'File Uploaded to IPFS',
         description: `${file.name} successfully uploaded to IPFS with hash: ${ipfsHash.substring(0, 10)}...`,
       });
-      
+
       setIsUploadingToIpfs(false);
 
       // Then process the file for content analysis
@@ -206,30 +209,43 @@ export default function AIStoryGenerator({
       if (result.success) {
         setFileContent(result.data.content);
         setFileAnalysis(result.data.analysis);
-        
+
         // Auto-populate fields based on file analysis
         if (result.data.analysis.characters.length > 0) {
           setMainCharacters(result.data.analysis.characters.join(', '));
         }
-        
+
         if (result.data.analysis.themes.length > 0) {
           setThemes(result.data.analysis.themes.join(', '));
         }
-        
+
         if (result.data.analysis.settings.length > 0) {
           setSetting(result.data.analysis.settings[0]);
         }
 
         // Auto-populate prompt with file content
-        if (result.data.content && result.data.content !== 'PDF_PROCESSING_REQUIRED' && result.data.content !== 'DOCUMENT_PROCESSING_REQUIRED') {
-          const truncatedContent = result.data.content.length > 1000 ? result.data.content.substring(0, 1000) + '...' : result.data.content;
-          setPrompt(`Based on this content: "${truncatedContent}"\n\nGenerate a story that continues or reimagines this narrative:`);
+        if (
+          result.data.content &&
+          result.data.content !== 'PDF_PROCESSING_REQUIRED' &&
+          result.data.content !== 'DOCUMENT_PROCESSING_REQUIRED'
+        ) {
+          const truncatedContent =
+            result.data.content.length > 1000
+              ? result.data.content.substring(0, 1000) + '...'
+              : result.data.content;
+          setPrompt(
+            `Based on this content: "${truncatedContent}"\n\nGenerate a story that continues or reimagines this narrative:`
+          );
         } else {
           // For PDF/Word files that need manual extraction
           if (result.data.content === 'PDF_PROCESSING_REQUIRED') {
-            setPrompt('Please paste the content from your PDF file above, then describe the story you want to generate based on that content:');
+            setPrompt(
+              'Please paste the content from your PDF file above, then describe the story you want to generate based on that content:'
+            );
           } else if (result.data.content === 'DOCUMENT_PROCESSING_REQUIRED') {
-            setPrompt('Please paste the content from your Word document above, then describe the story you want to generate based on that content:');
+            setPrompt(
+              'Please paste the content from your Word document above, then describe the story you want to generate based on that content:'
+            );
           }
         }
 
@@ -244,7 +260,9 @@ export default function AIStoryGenerator({
       console.error('Error processing file:', error);
       toast({
         title: 'File Processing Error',
-        description: error.message || 'Failed to process the uploaded file. Please try again.',
+        description:
+          error.message ||
+          'Failed to process the uploaded file. Please try again.',
         variant: 'destructive',
       });
       setUploadedFile(null);
@@ -516,16 +534,25 @@ This generated story demonstrates the power of AI-assisted creative writing, com
       const nftMetadata = {
         name: title || 'Monad Mythics Story',
         description: `AI-generated story: ${prompt.substring(0, 100)}...`,
-        image: generatedImages.length > 0 ? generatedImages[0]?.url : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
-        images: generatedImages.map(img => ({ url: img.url, chapter: img.chapter, description: img.description })),
+        image:
+          generatedImages.length > 0
+            ? generatedImages[0]?.url
+            : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop&crop=center',
+        images: generatedImages.map((img) => ({
+          url: img.url,
+          chapter: img.chapter,
+          description: img.description,
+        })),
         // Include source file information if available
-        sourceFile: sourceFileIpfsHash ? {
-          ipfsHash: sourceFileIpfsHash,
-          fileName: uploadedFile?.name || 'Unknown',
-          fileType: uploadedFile?.type || 'Unknown',
-          fileSize: uploadedFile?.size || 0,
-          uploadedAt: new Date().toISOString(),
-        } : null,
+        sourceFile: sourceFileIpfsHash
+          ? {
+              ipfsHash: sourceFileIpfsHash,
+              fileName: uploadedFile?.name || 'Unknown',
+              fileType: uploadedFile?.type || 'Unknown',
+              fileSize: uploadedFile?.size || 0,
+              uploadedAt: new Date().toISOString(),
+            }
+          : null,
         attributes: [
           {
             trait_type: 'Genre',
@@ -543,7 +570,8 @@ This generated story demonstrates the power of AI-assisted creative writing, com
           },
           {
             trait_type: 'Creation Mode',
-            value: creationMode === 'upload' ? 'File Upload' : 'Manual Creation',
+            value:
+              creationMode === 'upload' ? 'File Upload' : 'Manual Creation',
           },
           {
             trait_type: 'Has Source File',
@@ -572,7 +600,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
 
       // Use the real Web3 provider to mint the NFT
       const result = await mintNFTOnMonad(contractMetadata);
-      
+
       console.log('NFT minted successfully:', result);
 
       // Create the gallery URL to view the minted NFT
@@ -678,10 +706,12 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                   <h3 className="text-lg font-semibold text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                     ⚡ Choose Your Creation Method ⚡
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
-                      variant={creationMode === 'manual' ? 'default' : 'outline'}
+                      variant={
+                        creationMode === 'manual' ? 'default' : 'outline'
+                      }
                       className={`h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-300 ${
                         creationMode === 'manual'
                           ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg border-0'
@@ -692,12 +722,16 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                       <Wand2 className="h-8 w-8" />
                       <div className="text-center">
                         <div className="font-semibold">AI Creation</div>
-                        <div className="text-xs opacity-80">Full control over all story elements</div>
+                        <div className="text-xs opacity-80">
+                          Full control over all story elements
+                        </div>
                       </div>
                     </Button>
 
                     <Button
-                      variant={creationMode === 'upload' ? 'default' : 'outline'}
+                      variant={
+                        creationMode === 'upload' ? 'default' : 'outline'
+                      }
                       className={`h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-300 ${
                         creationMode === 'upload'
                           ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg border-0'
@@ -708,16 +742,17 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                       <Upload className="h-8 w-8" />
                       <div className="text-center">
                         <div className="font-semibold">Manual Upload</div>
-                        <div className="text-xs opacity-80">Upload content + title & author</div>
+                        <div className="text-xs opacity-80">
+                          Upload content + title & author
+                        </div>
                       </div>
                     </Button>
                   </div>
 
                   <p className="text-center text-sm text-slate-400">
-                    {creationMode === 'manual' 
+                    {creationMode === 'manual'
                       ? '🎯 Craft every detail of your story from scratch with full customization options'
-                      : '📚 Upload existing content and let AI transform it with minimal input required'
-                    }
+                      : '📚 Upload existing content and let AI transform it with minimal input required'}
                   </p>
                 </div>
               </div>
@@ -729,7 +764,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                     <div className="relative">
                       <label className="text-sm font-medium mb-2 flex items-center">
                         <Lightbulb className="h-4 w-4 mr-2 text-orange-500" />
-                        Spark of Inspiration *
+                        Spark of Inspiration *p
                       </label>
                       <Textarea
                         placeholder="Whisper your tale's essence... What legendary story burns within your imagination?"
@@ -806,7 +841,9 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                           <Badge
                             key={genre}
                             variant={
-                              selectedGenres.includes(genre) ? 'default' : 'outline'
+                              selectedGenres.includes(genre)
+                                ? 'default'
+                                : 'outline'
                             }
                             className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
                               selectedGenres.includes(genre)
@@ -820,7 +857,8 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        ✨ Choose the mystical forces that will shape your narrative (Required for minting)
+                        ✨ Choose the mystical forces that will shape your
+                        narrative (Required for minting)
                       </p>
                     </div>
                   </>
@@ -857,7 +895,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                     {/* File Upload Section */}
                     <div className="border-2 border-dashed border-blue-500/40 rounded-xl p-6 bg-slate-900/60 backdrop-blur-sm relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 animate-pulse"></div>
-                      
+
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
                           <label className="text-lg font-semibold flex items-center text-blue-400">
@@ -882,34 +920,46 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                             <div className="flex items-center space-x-3 mb-3">
                               <File className="h-8 w-8 text-blue-400" />
                               <div className="flex-1">
-                                <p className="font-medium text-blue-400">{uploadedFile.name}</p>
+                                <p className="font-medium text-blue-400">
+                                  {uploadedFile.name}
+                                </p>
                                 <p className="text-xs text-slate-400">
-                                  {(uploadedFile.size / 1024).toFixed(1)} KB • {uploadedFile.type}
+                                  {(uploadedFile.size / 1024).toFixed(1)} KB •{' '}
+                                  {uploadedFile.type}
                                 </p>
                                 {sourceFileIpfsHash && (
                                   <p className="text-xs text-green-400 mt-1">
-                                    📦 IPFS: {sourceFileIpfsHash.substring(0, 10)}...{sourceFileIpfsHash.slice(-6)}
+                                    📦 IPFS:{' '}
+                                    {sourceFileIpfsHash.substring(0, 10)}...
+                                    {sourceFileIpfsHash.slice(-6)}
                                   </p>
                                 )}
                               </div>
                               {isUploadingToIpfs && (
                                 <div className="flex items-center space-x-2">
                                   <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                                  <span className="text-xs text-blue-400">Uploading to IPFS...</span>
+                                  <span className="text-xs text-blue-400">
+                                    Uploading to IPFS...
+                                  </span>
                                 </div>
                               )}
                             </div>
-                            {fileContent && fileContent !== 'Please paste the content from your PDF file here...' && fileContent !== 'Please paste the content from your document here...' && (
-                              <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/30 max-h-32 overflow-y-auto">
-                                <p className="text-xs text-slate-300 leading-relaxed">
-                                  {fileContent.substring(0, 300)}
-                                  {fileContent.length > 300 && '...'}
-                                </p>
-                              </div>
-                            )}
+                            {fileContent &&
+                              fileContent !==
+                                'Please paste the content from your PDF file here...' &&
+                              fileContent !==
+                                'Please paste the content from your document here...' && (
+                                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/30 max-h-32 overflow-y-auto">
+                                  <p className="text-xs text-slate-300 leading-relaxed">
+                                    {fileContent.substring(0, 300)}
+                                    {fileContent.length > 300 && '...'}
+                                  </p>
+                                </div>
+                              )}
                             <div className="mt-3 flex items-center justify-between">
                               <div className="text-xs text-slate-400">
-                                ✨ File content will be used as the basis for your story generation
+                                ✨ File content will be used as the basis for
+                                your story generation
                               </div>
                               {sourceFileIpfsHash && (
                                 <div className="flex items-center space-x-1 text-xs text-green-400">
@@ -933,18 +983,21 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                               onChange={handleFileSelect}
                               className="hidden"
                             />
-                            
+
                             {isProcessingFile || isUploadingToIpfs ? (
                               <div className="flex flex-col items-center justify-center space-y-3">
                                 <div className="flex items-center space-x-3">
                                   <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
                                   <span className="text-blue-400">
-                                    {isUploadingToIpfs ? 'Uploading to IPFS...' : 'Processing file...'}
+                                    {isUploadingToIpfs
+                                      ? 'Uploading to IPFS...'
+                                      : 'Processing file...'}
                                   </span>
                                 </div>
                                 {isUploadingToIpfs && (
                                   <p className="text-xs text-slate-400 text-center">
-                                    📦 Securing your file on the decentralized web
+                                    📦 Securing your file on the decentralized
+                                    web
                                   </p>
                                 )}
                               </div>
@@ -955,7 +1008,9 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                                   Upload Source Document
                                 </h3>
                                 <p className="text-slate-400 mb-4 max-w-md mx-auto">
-                                  Drop your file here or click to browse. Support for text files, markdown, PDF, and Word documents.
+                                  Drop your file here or click to browse.
+                                  Support for text files, markdown, PDF, and
+                                  Word documents.
                                 </p>
                                 <div className="flex items-center justify-center space-x-4 text-xs text-slate-500">
                                   <span>.txt</span>
@@ -972,7 +1027,9 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                         )}
 
                         <p className="text-sm text-slate-300 leading-relaxed mt-4">
-                          📚 Upload existing content to transform into a new story. The AI will analyze your document and create an original narrative based on its themes and content.
+                          📚 Upload existing content to transform into a new
+                          story. The AI will analyze your document and create an
+                          original narrative based on its themes and content.
                         </p>
                       </div>
                     </div>
@@ -988,7 +1045,9 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                           <Badge
                             key={genre}
                             variant={
-                              selectedGenres.includes(genre) ? 'default' : 'outline'
+                              selectedGenres.includes(genre)
+                                ? 'default'
+                                : 'outline'
                             }
                             className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
                               selectedGenres.includes(genre)
@@ -1086,14 +1145,13 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                   </div>
                 </div>
 
-
-
                 <Button
                   onClick={generateStory}
                   disabled={
                     isGenerating ||
                     (creationMode === 'manual' && !prompt.trim()) ||
-                    (creationMode === 'upload' && (!title.trim() || !author.trim() || !uploadedFile))
+                    (creationMode === 'upload' &&
+                      (!title.trim() || !author.trim() || !uploadedFile))
                   }
                   className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
                   size="lg"
@@ -1313,11 +1371,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                         </h3>
                       </div>
                       <Button asChild>
-                        <a
-                          href={mintedNftUrl}
-                        >
-                          View in Gallery
-                        </a>
+                        <a href={mintedNftUrl}>View in Gallery</a>
                       </Button>
                     </div>
                   ) : (

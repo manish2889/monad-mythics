@@ -1,14 +1,18 @@
-
 # Overview
 
-The AI Story & Image NFT Generator is a Web3 platform that allows users to transform simple text into fully illustrated stories and mint them as NFTs on the blockchain. By combining AI-powered story generation with image creation and NFT minting, our platform ensures that creators have immutable proof of authorship for their digital works.
+The AI Story & Image NFT Generator is a Web3 platform that allows users to transform simple text
+into fully illustrated stories and mint them as NFTs on the blockchain. By combining AI-powered
+story generation with image creation and NFT minting, our platform ensures that creators have
+immutable proof of authorship for their digital works.
 
-This project bridges the gap between creativity and ownership, empowering writers, artists, and AI creators to secure and showcase their creations in the decentralized ecosystem.
-
+This project bridges the gap between creativity and ownership, empowering writers, artists, and AI
+creators to secure and showcase their creations in the decentralized ecosystem.
 
 # 🚀 Problem Statement
 
-In the digital world, creators whether writers, artists, or AI innovators often face challenges proving ownership of their work. Digital content can easily be copied, shared, or repurposed without recognition, leaving creators without proper attribution or control.
+In the digital world, creators whether writers, artists, or AI innovators often face challenges
+proving ownership of their work. Digital content can easily be copied, shared, or repurposed without
+recognition, leaving creators without proper attribution or control.
 
 Key Problems:
 
@@ -20,17 +24,17 @@ Key Problems:
 
 - Limited access to decentralized platforms for content creators.
 
-
-
 # 💡 Our Solution
 
 Our platform provides a complete solution by enabling users to:
 
 - Upload text or story ideas – Even a short prompt can generate a full story.
 
-- Generate AI-powered stories and images – Instantly create illustrated content based on the input text.
+- Generate AI-powered stories and images – Instantly create illustrated content based on the input
+  text.
 
-- Mint as NFTs on Monad – Turn generated stories and images into verifiable, immutable digital assets.
+- Mint as NFTs on Monad – Turn generated stories and images into verifiable, immutable digital
+  assets.
 
 - Own and trade creations – Creators have full ownership and can sell or share their NFTs securely.
 
@@ -44,7 +48,6 @@ Benefits:
 
 - Easy access to Web3 and NFT marketplaces.
 
-
 # 🎯 Target Audience
 
 Our platform primarily serves:
@@ -56,9 +59,6 @@ Our platform primarily serves:
 - Digital collectors & NFT enthusiasts – Acquire unique, meaningful NFTs.
 
 - Gamers & metaverse developers – Use story-driven assets in virtual worlds.
-
-
-
 
 # 🛠️ Features
 
@@ -74,11 +74,9 @@ Our platform primarily serves:
 
 - Customizable Content: Personalize stories and visuals based on user input.
 
-
-
 # 🖥️ Technology Stack
 
-Frontend:  Next.js
+Frontend: Next.js
 
 Backend: Node.js / Express
 
@@ -86,11 +84,10 @@ AI Generation: Groq , Stable Diffusion API
 
 Blockchain / NFT: Monad NFT platform
 
-Storage: IPFS 
+Storage: IPFS
 
 Authentication: Web3 wallet integration (MetaMask, WalletConnect)
 
-Smart Contract : Solidity 
+Smart Contract : Solidity
 
-AI integration : Python 
-
+AI integration : Python
