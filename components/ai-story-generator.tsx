@@ -691,7 +691,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                     >
                       <Wand2 className="h-8 w-8" />
                       <div className="text-center">
-                        <div className="font-semibold">Manual Creation</div>
+                        <div className="font-semibold">AI Creation</div>
                         <div className="text-xs opacity-80">Full control over all story elements</div>
                       </div>
                     </Button>
@@ -707,7 +707,7 @@ This generated story demonstrates the power of AI-assisted creative writing, com
                     >
                       <Upload className="h-8 w-8" />
                       <div className="text-center">
-                        <div className="font-semibold">Upload & Generate</div>
+                        <div className="font-semibold">Manual Upload</div>
                         <div className="text-xs opacity-80">Upload content + title & author</div>
                       </div>
                     </Button>
